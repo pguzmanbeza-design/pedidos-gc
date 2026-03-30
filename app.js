@@ -21,6 +21,7 @@ function st(p) { return p.cantidadActual<=0?'empty':p.cantidadActual<p.stockMini
 function nid(a) { var m=0; for(var i=0;i<a.length;i++) if(a[i].id>m) m=a[i].id; return m+1; }
 function dCan(c) { return (c==='Verduras'||c==='Frutas')?'feria':'uber_eats'; }
 function now() { return new Date().toISOString(); }
+function cap(s) { if(!s)return s; return s.charAt(0).toUpperCase()+s.slice(1); }
 
 function save() {
   S.lastSaved = now();
@@ -248,12 +249,13 @@ function renderDesp() {
       var s = st(p);
       h += '<div class="pc s-'+s+(isP?' s-pupe':'')+(isFV?' s-feria':'')+'" data-id="'+p.id+'">';
       h += '<div class="pn">'+p.nombre+'</div>';
-      h += '<div class="pq q-'+s+'">'+p.cantidadActual+'</div>';
-      h += '<div class="pu">'+p.unidad+'</div>';
+      h += '<div class="prow">';
+      h += '<span class="pq q-'+s+'">'+p.cantidadActual+'</span>';
+      h += '<span class="pu">'+p.unidad+'</span>';
       h += '<div class="pb">';
       h += '<button class="pbtn" data-a="m" data-id="'+p.id+'">-</button>';
       h += '<button class="pbtn" data-a="p" data-id="'+p.id+'">+</button>';
-      h += '</div></div>';
+      h += '</div></div></div>';
     }
   }
   el.innerHTML = h;
@@ -635,12 +637,12 @@ function processCommand(text) {
           p.upd=now(); p.by=S.config.activeUser;
           msgs.push(p.nombre+' -> '+p.cantidadActual);
         } else {
-          S.productos.push({id:nid(S.productos),nombre:a.producto||'Nuevo',categoria:'Otro',unidad:'un',cantidadActual:typeof a.cantidad==='number'?a.cantidad:0,stockMinimo:1,canal:'uber_eats',upd:now(),by:S.config.activeUser});
+          S.productos.push({id:nid(S.productos),nombre:cap(a.producto)||'Nuevo',categoria:'Otro',unidad:'un',cantidadActual:typeof a.cantidad==='number'?a.cantidad:0,stockMinimo:1,canal:'uber_eats',upd:now(),by:S.config.activeUser});
           msgs.push('Creado: '+a.producto);
         }
       }
       else if (a.tipo === 'pedido') {
-        var pedText = a.texto||a.producto||a.nombre||'Pedido';
+        var pedText = cap(a.texto||a.producto||a.nombre||'Pedido');
         var pedQty = a.cantidad||1;
         var pedPor = a.solicitadoPor||a.por||S.config.activeUser;
         // Check for existing pending pedido
@@ -654,13 +656,13 @@ function processCommand(text) {
         var pedProd = findProduct(pedText);
         if (!pedProd) {
           var pedCat = a.categoria||'Otro';
-          S.productos.push({id:nid(S.productos),nombre:pedText,categoria:pedCat,unidad:a.unidad||'un',cantidadActual:0,stockMinimo:pedQty,canal:dCan(pedCat),upd:now(),by:S.config.activeUser});
+          S.productos.push({id:nid(S.productos),nombre:cap(pedText),categoria:pedCat,unidad:a.unidad||'un',cantidadActual:0,stockMinimo:pedQty,canal:dCan(pedCat),upd:now(),by:S.config.activeUser});
         } else if (a.categoria && a.categoria!=='Otro' && pedProd.categoria==='Otro') {
           pedProd.categoria = a.categoria;
         }
       }
       else if (a.tipo === 'crear') {
-        var nombre = a.nombre||a.producto||'Nuevo';
+        var nombre = cap(a.nombre||a.producto||'Nuevo');
         var categ = a.categoria||'Otro';
         var existing = findProduct(nombre);
         if (existing) { existing.cantidadActual+=(a.cantidad||1); if(categ!=='Otro')existing.categoria=categ; existing.upd=now(); existing.by=S.config.activeUser; msgs.push(existing.nombre+' +'+( a.cantidad||1)); }
