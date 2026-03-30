@@ -33,8 +33,22 @@ function save() {
 function load() {
   try {
     var d = localStorage.getItem('df7');
-    if (d) { S = JSON.parse(d); if(!S.pedidos) S.pedidos=[]; }
-    else seed();
+    if (d) { S = JSON.parse(d); if(!S.pedidos) S.pedidos=[]; return; }
+    // Try to migrate from older versions
+    var oldKeys = ['df6','df5','despensa_v3','despensa_familiar_v2','despensa_familiar'];
+    for (var k=0; k<oldKeys.length; k++) {
+      var old = localStorage.getItem(oldKeys[k]);
+      if (old) {
+        try {
+          S = JSON.parse(old);
+          if(!S.pedidos) S.pedidos=[];
+          localStorage.setItem('df7', JSON.stringify(S));
+          console.log('Migrated data from '+oldKeys[k]);
+          return;
+        } catch(e2) {}
+      }
+    }
+    seed();
   } catch(e) { seed(); }
 }
 
@@ -48,7 +62,7 @@ function syncToCloud() {
     fetch(S.config.proxyUrl.replace(/\/+$/,''), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ _sync: 'save', data: { productos: S.productos, pedidos: S.pedidos } })
+      body: JSON.stringify({ _sync: 'save', data: { productos: S.productos, pedidos: S.pedidos, config: S.config } })
     }).then(function(r) { return r.json(); })
     .then(function(d) {
       if (d.ok) console.log('Synced to cloud:', d.saved);
@@ -69,6 +83,12 @@ function loadFromCloud() {
       if (cloudTime >= localTime) {
         S.productos = d.productos;
         S.pedidos = d.pedidos || S.pedidos;
+        if (d.config) {
+          // Restore config from cloud but keep local proxyUrl
+          var localProxy = S.config.proxyUrl;
+          S.config = d.config;
+          if (localProxy) S.config.proxyUrl = localProxy;
+        }
         localStorage.setItem('df7', JSON.stringify(S));
         return true;
       }
