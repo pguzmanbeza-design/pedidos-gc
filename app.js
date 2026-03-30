@@ -577,29 +577,32 @@ function processCommand(text) {
     'ACCIONES:\n' +
     '1. {"tipo":"actualizar","producto":"Nombre","cantidad":N} - Cambia stock\n' +
     '2. {"tipo":"crear","nombre":"X","categoria":"Cat","unidad":"un","cantidad":N,"stockMinimo":1} - Producto nuevo\n' +
-    '3. {"tipo":"pedido","texto":"X","solicitadoPor":"Persona","cantidad":N,"comentario":""} - Pedido de compra\n\n' +
-    'CATEGORIAS (elige la correcta SIEMPRE):\n' +
-    '- Lacteos: leche, yogur, queso, mantequilla, crema, manjar\n' +
-    '- Carnes: pollo, carne, cerdo, salmon, pescado, jamon, vienesas, tocino\n' +
-    '- Verduras: tomate, lechuga, cebolla, zanahoria, pepino, pimenton, apio, brocoli, espinaca\n' +
-    '- Frutas: manzana, platano, palta, naranja, limon, uva, frutilla, kiwi\n' +
-    '- Abarrotes: arroz, pasta, fideos, aceite, atun, lentejas, harina, azucar, sal, pimienta, comino, oregano, garam masala, curry, mostaza, ketchup, mayo, salsa soya, vinagre, mermelada\n' +
-    '- Limpieza: detergente, jabon, papel higienico, cloro, esponja, bolsas basura, desinfectante, shampoo, pasta dientes\n' +
-    '- Bebidas: agua, jugo, cerveza, vino, coca cola, bebida, cafe, te\n' +
-    '- Congelados: helado, pizza congelada, papas fritas congeladas\n' +
-    '- Panaderia: pan, pan molde, galletas, queque, torta\n' +
+    '3. {"tipo":"pedido","texto":"X","solicitadoPor":"Persona","cantidad":N,"comentario":"","categoria":"Cat"} - Pedido de compra\n' +
+    '4. {"tipo":"eliminar","producto":"X"} - Eliminar producto de la despensa\n\n' +
+    'CATEGORIAS (elige la correcta SIEMPRE, NUNCA uses "Otro" si puedes categorizar):\n' +
+    '- Lacteos: leche, yogur, queso, mantequilla, crema, manjar, huevos\n' +
+    '- Carnes: pollo, carne, cerdo, salmon, pescado, jamon, vienesas, tocino, chorizo\n' +
+    '- Verduras: tomate, lechuga, cebolla, zanahoria, pepino, pimenton, apio, brocoli, espinaca, zapallo, choclo, papa\n' +
+    '- Frutas: manzana, platano, palta, naranja, limon, uva, frutilla, kiwi, durazno, sandia\n' +
+    '- Abarrotes: arroz, pasta, fideos, aceite, atun, lentejas, harina, azucar, sal, pimienta, comino, oregano, garam masala, curry, mostaza, ketchup, mayo, mayonesa, salsa soya, salsa, vinagre, mermelada, miel, cafe, te, cacao, chocolate, cereal, avena, granola, confort, papel higienico, servilletas, especias, condimentos\n' +
+    '- Limpieza: detergente, jabon, cloro, esponja, bolsas basura, desinfectante, shampoo, pasta dientes, escobilla, lavaloza, suavizante, limpiador\n' +
+    '- Bebidas: agua, jugo, cerveza, vino, coca cola, bebida, gaseosa, sprite, fanta\n' +
+    '- Congelados: helado, pizza congelada, papas fritas congeladas, nuggets\n' +
+    '- Panaderia: pan, pan molde, galletas, queque, torta, bizcocho\n' +
     '- Pupe: leche almendra, yogur vegano, queso vegano, todo lo sin lactosa o vegano para Pupe\n' +
-    '- Otro: solo si NO encaja en ninguna categoria anterior\n\n' +
-    'REGLAS:\n' +
-    '- "hay X" o "tengo X" o "quedan X" = ACTUALIZAR stock\n' +
-    '- "se acabo X" o "no hay X" = ACTUALIZAR a 0\n' +
-    '- "falta X" o "faltan X" = PEDIDO + CREAR producto si no existe (cantidad 0)\n' +
-    '- "pedir X" o "comprar X" o "necesito X" = PEDIDO\n' +
-    '- "agregar X" = CREAR producto nuevo con cantidad 1\n' +
-    '- Nombre de persona + quiere/necesita = PEDIDO para esa persona\n' +
+    '- Otro: SOLO si realmente no encaja en NINGUNA categoria. Piensa bien antes de usar "Otro".\n\n' +
+    'REGLAS DE INTERPRETACION:\n' +
+    '- "hay X" / "tengo X" / "quedan X" = ACTUALIZAR stock\n' +
+    '- "se acabo X" / "no hay X" / "no queda X" = ACTUALIZAR a 0\n' +
+    '- "falta X" / "faltan X" = PEDIDO + CREAR si no existe (cantidad 0)\n' +
+    '- "pedir X" / "comprar X" / "necesito X" / "quiero X" / "traer X" / "conseguir X" = PEDIDO\n' +
+    '- "agregar X" / "nuevo producto X" = CREAR producto nuevo con cantidad 1\n' +
+    '- "eliminar X" / "borrar X" / "quitar X" / "sacar X de la despensa" = ELIMINAR producto\n' +
+    '- Nombre de persona + quiere/necesita/pide = PEDIDO para esa persona\n' +
     '- Si ya existe pedido pendiente del mismo producto, ACTUALIZA cantidad (no duplicar)\n' +
-    '- Si "falta" un producto que YA EXISTE, pon stock en 0 Y crea pedido\n' +
-    '- NUNCA pongas categoria "Otro" si el producto encaja en alguna categoria de la lista\n' +
+    '- Si "falta" un producto que YA EXISTE en despensa, pon stock en 0 Y crea pedido\n' +
+    '- SIEMPRE asigna la categoria correcta al crear productos o pedidos. Usa tu conocimiento para categorizar.\n' +
+    '- Ejemplos: garam masala=Abarrotes, cerveza=Bebidas, confort=Abarrotes, shampoo=Limpieza, kefir=Lacteos\n' +
     '- NO uses markdown. SOLO JSON puro.';
 
   callOpenAI({
@@ -646,16 +649,31 @@ function processCommand(text) {
         }
         if (existPed) { existPed.cantidad=pedQty; existPed.por=pedPor; existPed.fecha=now(); msgs.push('Pedido actualizado: '+pedText+' x'+pedQty); }
         else { S.pedidos.push({id:nid(S.pedidos),texto:pedText,cantidad:pedQty,por:pedPor,com:a.comentario||'',fecha:now(),estado:'pendiente'}); msgs.push('Pedido: '+pedText+' x'+pedQty); }
-        // Ensure in despensa
-        if (!findProduct(pedText)) {
-          S.productos.push({id:nid(S.productos),nombre:pedText,categoria:a.categoria||'Otro',unidad:a.unidad||'un',cantidadActual:0,stockMinimo:pedQty,canal:'uber_eats',upd:now(),by:S.config.activeUser});
+        // Ensure in despensa with proper category
+        var pedProd = findProduct(pedText);
+        if (!pedProd) {
+          var pedCat = a.categoria||'Otro';
+          S.productos.push({id:nid(S.productos),nombre:pedText,categoria:pedCat,unidad:a.unidad||'un',cantidadActual:0,stockMinimo:pedQty,canal:dCan(pedCat),upd:now(),by:S.config.activeUser});
+        } else if (a.categoria && a.categoria!=='Otro' && pedProd.categoria==='Otro') {
+          pedProd.categoria = a.categoria;
         }
       }
       else if (a.tipo === 'crear') {
         var nombre = a.nombre||a.producto||'Nuevo';
+        var categ = a.categoria||'Otro';
         var existing = findProduct(nombre);
-        if (existing) { existing.cantidadActual+=(a.cantidad||1); existing.upd=now(); existing.by=S.config.activeUser; msgs.push(existing.nombre+' +'+( a.cantidad||1)); }
-        else { S.productos.push({id:nid(S.productos),nombre:nombre,categoria:a.categoria||'Otro',unidad:a.unidad||'un',cantidadActual:typeof a.cantidad==='number'?a.cantidad:1,stockMinimo:a.stockMinimo||1,canal:a.canal||dCan(a.categoria||'Otro'),upd:now(),by:S.config.activeUser}); msgs.push('Nuevo: '+nombre); }
+        if (existing) { existing.cantidadActual+=(a.cantidad||1); if(categ!=='Otro')existing.categoria=categ; existing.upd=now(); existing.by=S.config.activeUser; msgs.push(existing.nombre+' +'+( a.cantidad||1)); }
+        else { S.productos.push({id:nid(S.productos),nombre:nombre,categoria:categ,unidad:a.unidad||'un',cantidadActual:typeof a.cantidad==='number'?a.cantidad:1,stockMinimo:a.stockMinimo||1,canal:a.canal||dCan(categ),upd:now(),by:S.config.activeUser}); msgs.push('Nuevo: '+nombre+' ('+categ+')'); }
+      }
+      else if (a.tipo === 'eliminar') {
+        var delName = a.producto||a.nombre||'';
+        var delP = findProduct(delName);
+        if (delP) {
+          S.productos = S.productos.filter(function(x){return x.id!==delP.id;});
+          msgs.push('Eliminado: '+delP.nombre);
+        } else {
+          msgs.push('No encontrado: '+delName);
+        }
       }
     }
 
