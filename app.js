@@ -503,14 +503,17 @@ document.getElementById('testApi').addEventListener('click',function(){
 });
 
 // === VOICE ===
-var isRec=false, mediaRec=null, chunks=[];
+var isRec=false, mediaRec=null, chunks=[], recStream=null, recTimeout=null;
 var hasSpeech=!!(window.SpeechRecognition||window.webkitSpeechRecognition);
 
 function startVoice(){if(isRec){stopVoice();return;}if(hasSpeech)startWebSpeech();else startWhisper();}
+
 function stopVoice(){
   var mic=document.getElementById('uMic');var stat=document.getElementById('uStat');
-  if(mic._rec){mic._rec.stop();mic._rec=null;}
-  if(mediaRec&&mediaRec.state==='recording')mediaRec.stop();
+  clearTimeout(recTimeout);
+  try{if(mic._rec){mic._rec.abort();mic._rec=null;}}catch(e){}
+  try{if(mediaRec&&mediaRec.state==='recording')mediaRec.stop();}catch(e){}
+  try{if(recStream){recStream.getTracks().forEach(function(t){t.stop();});recStream=null;}}catch(e){}
   isRec=false;mic.classList.remove('rec','proc');stat.classList.remove('show');
 }
 
@@ -518,10 +521,13 @@ function startWebSpeech(){
   var SRC=window.SpeechRecognition||window.webkitSpeechRecognition;
   var rec=new SRC();rec.lang='es-CL';rec.continuous=false;rec.interimResults=false;
   var mic=document.getElementById('uMic');var stat=document.getElementById('uStat');
-  rec.onstart=function(){isRec=true;mic.classList.add('rec');stat.textContent='Escuchando...';stat.classList.add('show');};
-  rec.onresult=function(e){var text=e.results[0][0].transcript;mic.classList.remove('rec');stat.classList.remove('show');isRec=false;mic._rec=null;if(text){document.getElementById('uInput').value=text;processCommand(text);}};
-  rec.onerror=function(e){mic.classList.remove('rec');stat.classList.remove('show');isRec=false;mic._rec=null;if(e.error==='not-allowed')alert('Permite acceso al microfono');else startWhisper();};
-  rec.onend=function(){if(isRec){mic.classList.remove('rec');stat.classList.remove('show');isRec=false;mic._rec=null;}};
+  var done=false;
+  function cleanup(){done=true;clearTimeout(recTimeout);try{rec.abort();}catch(e){}mic._rec=null;isRec=false;mic.classList.remove('rec');stat.classList.remove('show');}
+  rec.onstart=function(){isRec=true;mic.classList.add('rec');stat.textContent='Escuchando...';stat.classList.add('show');
+    recTimeout=setTimeout(function(){if(!done){cleanup();showToast('Tiempo agotado, intenta de nuevo','err');}},10000);};
+  rec.onresult=function(e){if(done)return;var text=e.results[0][0].transcript;cleanup();if(text){document.getElementById('uInput').value=text;processCommand(text);}};
+  rec.onerror=function(e){if(done)return;cleanup();if(e.error==='not-allowed')alert('Permite acceso al microfono');else startWhisper();};
+  rec.onend=function(){if(!done)cleanup();};
   mic._rec=rec;rec.start();
 }
 
@@ -530,23 +536,27 @@ function startWhisper(){
   var mic=document.getElementById('uMic');var stat=document.getElementById('uStat');
   navigator.mediaDevices.getUserMedia({audio:true})
   .then(function(stream){
+    recStream=stream;
     var mime=MediaRecorder.isTypeSupported('audio/webm')?'audio/webm':'audio/mp4';
     mediaRec=new MediaRecorder(stream,{mimeType:mime});chunks=[];
     mediaRec.ondataavailable=function(e){if(e.data.size>0)chunks.push(e.data);};
     mediaRec.onstop=function(){
-      stream.getTracks().forEach(function(t){t.stop();});
+      stream.getTracks().forEach(function(t){t.stop();});recStream=null;
+      clearTimeout(recTimeout);
       mic.classList.remove('rec');mic.classList.add('proc');stat.textContent='Procesando...';stat.classList.add('show');
       var blob=new Blob(chunks,{type:mime});
       var reader=new FileReader();
       reader.onload=function(ev){
         var base64=ev.target.result.split(',')[1];
         callOpenAI({_whisper:true,_audioBase64:base64,_mimeType:mime})
-        .then(function(d){mic.classList.remove('proc');stat.classList.remove('show');isRec=false;if(d.text){document.getElementById('uInput').value=d.text;processCommand(d.text);}})
-        .catch(function(){mic.classList.remove('proc');stat.classList.remove('show');isRec=false;});
+        .then(function(d){mic.classList.remove('proc');stat.classList.remove('show');isRec=false;if(d.text){document.getElementById('uInput').value=d.text;processCommand(d.text);}else{showToast('No se entendio, intenta de nuevo','err');}})
+        .catch(function(){mic.classList.remove('proc');stat.classList.remove('show');isRec=false;showToast('Error al transcribir','err');});
       };
       reader.readAsDataURL(blob);
     };
     mediaRec.start();isRec=true;mic.classList.add('rec');stat.textContent='Escuchando...';stat.classList.add('show');
+    // Auto-stop after 10 seconds
+    recTimeout=setTimeout(function(){if(mediaRec&&mediaRec.state==='recording')mediaRec.stop();},10000);
   })
   .catch(function(){alert('Permite acceso al microfono');});
 }
