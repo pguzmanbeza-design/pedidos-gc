@@ -1,0 +1,686 @@
+// ==========================================
+// DESPENSA FAMILIAR v5.0
+// ==========================================
+
+var AVATARS = {
+  Pablo:'avatar-pablo.png', Pupe:'avatar-pupe.jpg',
+  Mama:'avatar-mama.png', Papa:'avatar-papa.png',
+  Chichi:'avatar-chichi.png', Ester:'avatar-ester.png'
+};
+var SECTIONS = ['Carnes','Lacteos','Abarrotes','Bebidas','Limpieza','Panaderia','Congelados','Frutas y Verduras','Pupe','Otro'];
+
+var S = {
+  productos: [], pedidos: [],
+  config: { familia:['Papa','Mama','Pablo','Pupe','Chichi','Ester'], proxyUrl:'', activeUser:'Pablo' }
+};
+
+// === HELPERS ===
+function av(n) { return AVATARS[n] || ''; }
+function dSec(c) { return (c==='Verduras'||c==='Frutas') ? 'Frutas y Verduras' : c; }
+function st(p) { return p.cantidadActual<=0?'empty':p.cantidadActual<p.stockMinimo?'low':'ok'; }
+function nid(a) { var m=0; for(var i=0;i<a.length;i++) if(a[i].id>m) m=a[i].id; return m+1; }
+function dCan(c) { return (c==='Verduras'||c==='Frutas')?'feria':'uber_eats'; }
+function now() { return new Date().toISOString(); }
+
+function save() {
+  S.lastSaved = now();
+  try { localStorage.setItem('df7', JSON.stringify(S)); } catch(e) {}
+  // Sync to cloud (non-blocking)
+  syncToCloud();
+}
+
+function load() {
+  try {
+    var d = localStorage.getItem('df7');
+    if (d) { S = JSON.parse(d); if(!S.pedidos) S.pedidos=[]; }
+    else seed();
+  } catch(e) { seed(); }
+}
+
+// === CLOUD SYNC ===
+var syncTimer = null;
+function syncToCloud() {
+  // Debounce: wait 2 seconds after last change before syncing
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(function() {
+    if (!S.config.proxyUrl) return;
+    fetch(S.config.proxyUrl.replace(/\/+$/,''), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ _sync: 'save', data: { productos: S.productos, pedidos: S.pedidos } })
+    }).then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.ok) console.log('Synced to cloud:', d.saved);
+    })
+    .catch(function(e) { console.log('Sync error:', e.message); });
+  }, 2000);
+}
+
+function loadFromCloud() {
+  if (!S.config.proxyUrl) return Promise.resolve(false);
+  return fetch(S.config.proxyUrl.replace(/\/+$/,''), { method: 'GET' })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d && !d.empty && d.productos) {
+      // Merge: cloud data wins if it has more recent changes
+      var cloudTime = d.productos.reduce(function(max, p) { return p.upd > max ? p.upd : max; }, '');
+      var localTime = S.productos.reduce(function(max, p) { return p.upd > max ? p.upd : max; }, '');
+      if (cloudTime >= localTime) {
+        S.productos = d.productos;
+        S.pedidos = d.pedidos || S.pedidos;
+        localStorage.setItem('df7', JSON.stringify(S));
+        return true;
+      }
+    }
+    return false;
+  })
+  .catch(function() { return false; });
+}
+
+// Auto-sync: check cloud every 30 seconds
+setInterval(function() {
+  if (!S.config.proxyUrl) return;
+  loadFromCloud().then(function(updated) {
+    if (updated) { renderAll(); }
+  });
+}, 30000);
+
+function findProduct(name) {
+  if (!name) return null;
+  var q = name.toLowerCase().trim();
+  for (var i=0; i<S.productos.length; i++) {
+    if (S.productos[i].nombre.toLowerCase() === q) return S.productos[i];
+  }
+  for (var j=0; j<S.productos.length; j++) {
+    var pn = S.productos[j].nombre.toLowerCase();
+    if (pn.indexOf(q)>=0 || q.indexOf(pn)>=0) return S.productos[j];
+  }
+  return null;
+}
+
+// === OPENAI ===
+function callOpenAI(body) {
+  if (!S.config.proxyUrl) return Promise.reject(new Error('Configura el proxy en Config'));
+  return fetch(S.config.proxyUrl.replace(/\/+$/,''), {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+  }).then(function(r) {
+    return r.json().then(function(d) {
+      if (!r.ok) {
+        var msg = d.error ? (d.error.message || d.error) : 'Error '+r.status;
+        if (r.status===401) msg='API Key invalida en el proxy';
+        if (r.status===429) msg='Sin saldo en OpenAI';
+        throw new Error(msg);
+      }
+      return d;
+    });
+  });
+}
+
+// === TOAST ===
+var toastTimer;
+function showToast(msg,type) {
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show '+(type||'info');
+  clearTimeout(toastTimer);
+  if(type!=='info') toastTimer=setTimeout(function(){t.className='toast'},5000);
+}
+function hideToast() { document.getElementById('toast').className='toast'; clearTimeout(toastTimer); }
+
+// === SEED ===
+function seed() {
+  var n=now();
+  S.productos = [
+    {id:1,nombre:'Leche',categoria:'Lacteos',unidad:'lt',cantidadActual:1,stockMinimo:2,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:2,nombre:'Huevos',categoria:'Lacteos',unidad:'un',cantidadActual:0,stockMinimo:12,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:3,nombre:'Mantequilla',categoria:'Lacteos',unidad:'un',cantidadActual:2,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:4,nombre:'Yogur',categoria:'Lacteos',unidad:'un',cantidadActual:3,stockMinimo:2,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:5,nombre:'Queso',categoria:'Lacteos',unidad:'un',cantidadActual:0,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:6,nombre:'Pollo',categoria:'Carnes',unidad:'kg',cantidadActual:1,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:7,nombre:'Carne molida',categoria:'Carnes',unidad:'kg',cantidadActual:0,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:8,nombre:'Cerdo',categoria:'Carnes',unidad:'kg',cantidadActual:2,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:9,nombre:'Tomate',categoria:'Verduras',unidad:'kg',cantidadActual:0,stockMinimo:1,canal:'feria',upd:n,by:'Pablo'},
+    {id:10,nombre:'Lechuga',categoria:'Verduras',unidad:'un',cantidadActual:1,stockMinimo:1,canal:'feria',upd:n,by:'Pablo'},
+    {id:11,nombre:'Zanahoria',categoria:'Verduras',unidad:'kg',cantidadActual:2,stockMinimo:1,canal:'feria',upd:n,by:'Pablo'},
+    {id:12,nombre:'Cebolla',categoria:'Verduras',unidad:'kg',cantidadActual:1,stockMinimo:2,canal:'feria',upd:n,by:'Pablo'},
+    {id:13,nombre:'Palta',categoria:'Frutas',unidad:'un',cantidadActual:0,stockMinimo:3,canal:'feria',upd:n,by:'Pablo'},
+    {id:14,nombre:'Platano',categoria:'Frutas',unidad:'un',cantidadActual:6,stockMinimo:4,canal:'feria',upd:n,by:'Pablo'},
+    {id:15,nombre:'Manzana',categoria:'Frutas',unidad:'un',cantidadActual:3,stockMinimo:3,canal:'feria',upd:n,by:'Pablo'},
+    {id:16,nombre:'Arroz',categoria:'Abarrotes',unidad:'kg',cantidadActual:2,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:17,nombre:'Pasta',categoria:'Abarrotes',unidad:'pack',cantidadActual:1,stockMinimo:2,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:18,nombre:'Aceite',categoria:'Abarrotes',unidad:'lt',cantidadActual:1,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:19,nombre:'Atun',categoria:'Abarrotes',unidad:'un',cantidadActual:0,stockMinimo:3,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:20,nombre:'Lenteja',categoria:'Abarrotes',unidad:'kg',cantidadActual:1,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:21,nombre:'Detergente',categoria:'Limpieza',unidad:'un',cantidadActual:0,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:22,nombre:'Papel hig.',categoria:'Limpieza',unidad:'pack',cantidadActual:1,stockMinimo:2,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:23,nombre:'Jabon liq.',categoria:'Limpieza',unidad:'un',cantidadActual:2,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:24,nombre:'Agua',categoria:'Bebidas',unidad:'lt',cantidadActual:3,stockMinimo:4,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:25,nombre:'Jugo',categoria:'Bebidas',unidad:'lt',cantidadActual:2,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:26,nombre:'Pan molde',categoria:'Panaderia',unidad:'un',cantidadActual:1,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:27,nombre:'Helado',categoria:'Congelados',unidad:'un',cantidadActual:0,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
+    {id:28,nombre:'Leche alm.',categoria:'Pupe',unidad:'lt',cantidadActual:1,stockMinimo:2,canal:'uber_eats',upd:n,by:'Pupe'},
+    {id:29,nombre:'Yogur veg.',categoria:'Pupe',unidad:'un',cantidadActual:0,stockMinimo:2,canal:'uber_eats',upd:n,by:'Pupe'},
+    {id:30,nombre:'Granola',categoria:'Pupe',unidad:'un',cantidadActual:1,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pupe'}
+  ];
+  S.pedidos = [
+    {id:1,texto:'Yogur griego',cantidad:2,por:'Mama',com:'Colun',fecha:n,estado:'pendiente'},
+    {id:2,texto:'Shampoo',cantidad:1,por:'Pablo',com:'anticaspa',fecha:n,estado:'pendiente'},
+    {id:3,texto:'Galletas',cantidad:2,por:'Chichi',com:'chocolate',fecha:n,estado:'pendiente'}
+  ];
+  S.config = {familia:['Papa','Mama','Pablo','Pupe','Chichi','Ester'],proxyUrl:'',activeUser:'Pablo'};
+}
+
+// === TABS ===
+var activeTab = 'despensa';
+function switchTab(t) {
+  activeTab = t;
+  var tabs = document.querySelectorAll('.tb');
+  for (var i=0; i<tabs.length; i++) tabs[i].classList.toggle('on', tabs[i].getAttribute('data-t')===t);
+  var views = document.querySelectorAll('.vw');
+  for (var j=0; j<views.length; j++) views[j].classList.toggle('on', views[j].id==='v-'+t);
+  document.getElementById('addP').style.display = t==='despensa'?'':'none';
+  document.getElementById('addPed').style.display = t==='pedidos'?'':'none';
+  renderAll();
+}
+var tabBtns = document.querySelectorAll('.tb');
+for (var ti=0; ti<tabBtns.length; ti++) {
+  (function(btn){ btn.addEventListener('click', function(){ switchTab(btn.getAttribute('data-t')); }); })(tabBtns[ti]);
+}
+
+// === RENDER ALL ===
+function renderAll() {
+  renderDesp();
+  renderPed();
+  badges();
+  if (activeTab === 'config') renderConf();
+}
+
+// === RENDER DESPENSA ===
+var searchQ = '';
+function renderDesp() {
+  // Missing banner
+  var missingCount = 0;
+  for (var mi=0; mi<S.productos.length; mi++) { if (st(S.productos[mi])!=='ok') missingCount++; }
+  var banner = document.getElementById('missingBanner');
+  var bannerNum = document.getElementById('missingNum');
+  if (missingCount > 0) {
+    banner.classList.remove('hidden');
+    bannerNum.textContent = missingCount;
+  } else {
+    banner.classList.add('hidden');
+  }
+
+  // Filter
+  var ps = [];
+  for (var i=0; i<S.productos.length; i++) {
+    if (!searchQ || S.productos[i].nombre.toLowerCase().indexOf(searchQ.toLowerCase())>=0) {
+      ps.push(S.productos[i]);
+    }
+  }
+
+  // Group by section
+  var groups = {};
+  for (var k=0; k<ps.length; k++) {
+    var sec = dSec(ps[k].categoria);
+    if (!groups[sec]) groups[sec] = [];
+    groups[sec].push(ps[k]);
+  }
+  // Sort: empty first, then low, then ok
+  var stOrd = {empty:0, low:1, ok:2};
+  for (var g in groups) {
+    groups[g].sort(function(a,b){ return stOrd[st(a)] - stOrd[st(b)]; });
+  }
+
+  var el = document.getElementById('dList');
+  if (!ps.length) { el.innerHTML='<div class="es">No hay productos</div>'; return; }
+
+  var h = '';
+  for (var si=0; si<SECTIONS.length; si++) {
+    var sec = SECTIONS[si];
+    if (!groups[sec] || !groups[sec].length) continue;
+    var isFV = sec==='Frutas y Verduras';
+    var isP = sec==='Pupe';
+    h += '<div class="shdr '+(isFV?'sh-fv':'')+(isP?'sh-pu':'')+'">';
+    h += '<span class="sd" style="background:'+(isFV?'var(--fe)':isP?'var(--pu)':'var(--g3)')+'"></span>';
+    h += sec+'</div>';
+
+    for (var pi=0; pi<groups[sec].length; pi++) {
+      var p = groups[sec][pi];
+      var s = st(p);
+      h += '<div class="pc s-'+s+(isP?' s-pupe':'')+(isFV?' s-feria':'')+'" data-id="'+p.id+'">';
+      h += '<div class="pn">'+p.nombre+'</div>';
+      h += '<div class="pq q-'+s+'">'+p.cantidadActual+'</div>';
+      h += '<div class="pu">'+p.unidad+'</div>';
+      h += '<div class="pb">';
+      h += '<button class="pbtn" data-a="m" data-id="'+p.id+'">-</button>';
+      h += '<button class="pbtn" data-a="p" data-id="'+p.id+'">+</button>';
+      h += '</div></div>';
+    }
+  }
+  el.innerHTML = h;
+
+  // Bind events
+  var btns = el.querySelectorAll('.pbtn');
+  for (var bi=0; bi<btns.length; bi++) {
+    (function(btn){
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var pid = parseInt(btn.getAttribute('data-id'));
+        for (var x=0; x<S.productos.length; x++) {
+          if (S.productos[x].id===pid) {
+            if (btn.getAttribute('data-a')==='p') S.productos[x].cantidadActual++;
+            else if (S.productos[x].cantidadActual>0) S.productos[x].cantidadActual--;
+            S.productos[x].upd=now(); S.productos[x].by=S.config.activeUser;
+            break;
+          }
+        }
+        save(); renderAll();
+      });
+    })(btns[bi]);
+  }
+  var cards = el.querySelectorAll('.pc');
+  for (var ci=0; ci<cards.length; ci++) {
+    (function(card){ card.addEventListener('click', function(){ openProdModal(parseInt(card.getAttribute('data-id'))); }); })(cards[ci]);
+  }
+}
+document.getElementById('srcI').addEventListener('input', function(){ searchQ=this.value; renderDesp(); });
+
+// === RENDER PEDIDOS ===
+var pedFilter = 'Todos';
+function renderPed() {
+  var personas = ['Todos'].concat(S.config.familia);
+  var chH = '';
+  for (var i=0; i<personas.length; i++) {
+    chH += '<button class="ch '+(personas[i]===pedFilter?'on':'')+'" data-p="'+personas[i]+'">'+personas[i]+'</button>';
+  }
+  document.getElementById('pChs').innerHTML = chH;
+  var chs = document.querySelectorAll('#pChs .ch');
+  for (var ci=0; ci<chs.length; ci++) {
+    (function(ch){ ch.addEventListener('click', function(){ pedFilter=ch.getAttribute('data-p'); renderPed(); }); })(chs[ci]);
+  }
+
+  var pds = [];
+  for (var j=0; j<S.pedidos.length; j++) {
+    if (pedFilter==='Todos' || S.pedidos[j].por===pedFilter) pds.push(S.pedidos[j]);
+  }
+
+  var el = document.getElementById('pList');
+  if (!pds.length) { el.innerHTML='<div class="es">No hay pedidos</div>'; return; }
+
+  // Group by person
+  var grps = {};
+  for (var k=0; k<pds.length; k++) {
+    if (!grps[pds[k].por]) grps[pds[k].por]=[];
+    grps[pds[k].por].push(pds[k]);
+  }
+
+  var h = '';
+  for (var per in grps) {
+    var items = grps[per];
+    items.sort(function(a,b){ return (a.estado==='comprado'?1:0) - (b.estado==='comprado'?1:0); });
+    var a = av(per);
+    h += '<div class="pgrp"><div class="pgt">'+(a?'<img src="'+a+'">':'')+per+'</div>';
+    for (var m=0; m<items.length; m++) {
+      var p = items[m];
+      var dn = p.estado==='comprado';
+      h += '<div class="pdc '+(dn?'done':'')+'">';
+      h += '<button class="pck '+(dn?'ckd':'')+'" data-id="'+p.id+'">';
+      if (dn) h += '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+      h += '</button>';
+      h += '<div style="flex:1;min-width:0"><div class="pdt">'+p.texto+(p.cantidad>1?' x'+p.cantidad:'')+'</div>';
+      h += '<div class="pdm">'+(p.com||'')+'</div></div>';
+      h += '<button class="pdx" data-d="'+p.id+'">&times;</button></div>';
+    }
+    h += '</div>';
+  }
+  el.innerHTML = h;
+
+  // Bind
+  var pks = el.querySelectorAll('.pck');
+  for (var pi=0; pi<pks.length; pi++) {
+    (function(btn){ btn.addEventListener('click', function(){
+      var pid=parseInt(btn.getAttribute('data-id'));
+      for(var x=0;x<S.pedidos.length;x++){ if(S.pedidos[x].id===pid){ S.pedidos[x].estado=S.pedidos[x].estado==='comprado'?'pendiente':'comprado'; break; }}
+      save(); renderAll();
+    }); })(pks[pi]);
+  }
+  var dls = el.querySelectorAll('.pdx');
+  for (var di=0; di<dls.length; di++) {
+    (function(btn){ btn.addEventListener('click', function(){
+      var did=parseInt(btn.getAttribute('data-d'));
+      S.pedidos=S.pedidos.filter(function(x){return x.id!==did;});
+      save(); renderAll();
+    }); })(dls[di]);
+  }
+}
+
+// === RENDER CONFIG ===
+function renderConf() {
+  document.getElementById('proxyUrl').value = S.config.proxyUrl || '';
+
+  var h='';
+  for (var i=0; i<S.config.familia.length; i++) {
+    var m=S.config.familia[i]; var a=av(m);
+    h+='<span class="fchip">'+(a?'<img src="'+a+'">':'')+m+'<button class="fd" data-n="'+m+'">&times;</button></span>';
+  }
+  document.getElementById('famC').innerHTML=h;
+  var dels=document.querySelectorAll('.fd');
+  for(var d=0;d<dels.length;d++){
+    (function(btn){btn.addEventListener('click',function(){
+      S.config.familia=S.config.familia.filter(function(x){return x!==btn.getAttribute('data-n');});
+      save();renderConf();
+    });})(dels[d]);
+  }
+
+  var sel=document.getElementById('actUser'); var opts='';
+  for(var j=0;j<S.config.familia.length;j++){
+    opts+='<option'+(S.config.familia[j]===S.config.activeUser?' selected':'')+'>'+S.config.familia[j]+'</option>';
+  }
+  sel.innerHTML=opts;
+  sel.onchange=function(){S.config.activeUser=sel.value;save();updateUserBtn();};
+
+  var lsEl=document.getElementById('lastSaved');
+  if(S.lastSaved){var dt=new Date(S.lastSaved);lsEl.textContent='(guardado: '+dt.toLocaleDateString('es-CL')+' '+dt.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+')';}
+}
+
+function badges() {
+  var pc=0;
+  for(var j=0;j<S.pedidos.length;j++){if(S.pedidos[j].estado==='pendiente')pc++;}
+  var pb=document.getElementById('pBdg');pb.textContent=pc;pb.style.display=pc?'':'none';
+}
+
+function updateUserBtn() {
+  var b=document.getElementById('curUser');var a=av(S.config.activeUser);
+  b.innerHTML=(a?'<img src="'+a+'">':'')+S.config.activeUser;
+}
+
+// === PRODUCT MODAL ===
+function openProdModal(id) {
+  var p=null;
+  if(id){for(var i=0;i<S.productos.length;i++){if(S.productos[i].id===id){p=S.productos[i];break;}}}
+  document.getElementById('mT').textContent=p?'Editar':'Nuevo Producto';
+  document.getElementById('mId').value=p?p.id:'';
+  document.getElementById('mNom').value=p?p.nombre:'';
+  document.getElementById('mCat').value=p?p.categoria:'Abarrotes';
+  document.getElementById('mUni').value=p?p.unidad:'un';
+  document.getElementById('mQty').value=p?p.cantidadActual:0;
+  document.getElementById('mMin').value=p?p.stockMinimo:1;
+  document.getElementById('mDel').style.display=p?'':'none';
+  document.getElementById('mProd').classList.add('show');
+}
+document.getElementById('addP').addEventListener('click',function(){openProdModal(null);});
+document.getElementById('mCnc').addEventListener('click',function(){document.getElementById('mProd').classList.remove('show');});
+document.getElementById('mDel').addEventListener('click',function(){
+  var id=parseInt(document.getElementById('mId').value);
+  S.productos=S.productos.filter(function(x){return x.id!==id;});
+  save();document.getElementById('mProd').classList.remove('show');renderAll();
+});
+document.getElementById('mSav').addEventListener('click',function(){
+  var id=document.getElementById('mId').value;
+  var nm=document.getElementById('mNom').value.trim();
+  if(!nm)return;
+  var d={
+    nombre:nm, categoria:document.getElementById('mCat').value,
+    unidad:document.getElementById('mUni').value,
+    cantidadActual:parseInt(document.getElementById('mQty').value)||0,
+    stockMinimo:parseInt(document.getElementById('mMin').value)||1,
+    canal:dCan(document.getElementById('mCat').value),
+    upd:now(), by:S.config.activeUser
+  };
+  if(id){
+    for(var i=0;i<S.productos.length;i++){if(S.productos[i].id===parseInt(id)){Object.assign(S.productos[i],d);break;}}
+  } else {
+    d.id=nid(S.productos); S.productos.push(d);
+  }
+  save();document.getElementById('mProd').classList.remove('show');renderAll();
+});
+
+// === PEDIDO MODAL ===
+document.getElementById('addPed').addEventListener('click',function(){
+  document.getElementById('peT').value='';document.getElementById('peQ').value=1;document.getElementById('peC').value='';
+  var opts='';
+  for(var i=0;i<S.config.familia.length;i++){opts+='<option'+(S.config.familia[i]===S.config.activeUser?' selected':'')+'>'+S.config.familia[i]+'</option>';}
+  document.getElementById('peP').innerHTML=opts;
+  document.getElementById('mPed').classList.add('show');
+});
+document.getElementById('peCn').addEventListener('click',function(){document.getElementById('mPed').classList.remove('show');});
+document.getElementById('peSv').addEventListener('click',function(){
+  var t=document.getElementById('peT').value.trim(); if(!t)return;
+  var qty=parseInt(document.getElementById('peQ').value)||1;
+  // Check duplicate pending pedido
+  var existing=null;
+  for(var e=0;e<S.pedidos.length;e++){
+    if(S.pedidos[e].estado==='pendiente'&&S.pedidos[e].texto.toLowerCase()===t.toLowerCase()){existing=S.pedidos[e];break;}
+  }
+  if(existing){existing.cantidad=qty;existing.por=document.getElementById('peP').value;existing.fecha=now();}
+  else{S.pedidos.push({id:nid(S.pedidos),texto:t,cantidad:qty,por:document.getElementById('peP').value,com:document.getElementById('peC').value.trim(),fecha:now(),estado:'pendiente'});}
+  // Ensure product in despensa
+  if(!findProduct(t)){S.productos.push({id:nid(S.productos),nombre:t,categoria:'Otro',unidad:'un',cantidadActual:0,stockMinimo:qty,canal:'uber_eats',upd:now(),by:S.config.activeUser});}
+  save();document.getElementById('mPed').classList.remove('show');renderAll();
+});
+
+// === USER SELECT ===
+document.getElementById('curUser').addEventListener('click',function(){
+  var h='';
+  for(var i=0;i<S.config.familia.length;i++){
+    var m=S.config.familia[i];var a=av(m);var cls=m===S.config.activeUser?'pri':'sec';
+    h+='<button class="cbtn '+cls+'" data-u="'+m+'" style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:4px">';
+    if(a)h+='<img src="'+a+'" style="width:26px;height:26px;border-radius:50%;object-fit:contain;object-position:center top;background:var(--g1)">';
+    h+=m+'</button>';
+  }
+  document.getElementById('usrL').innerHTML=h;
+  var bs=document.querySelectorAll('#usrL button');
+  for(var j=0;j<bs.length;j++){
+    (function(btn){btn.addEventListener('click',function(){S.config.activeUser=btn.getAttribute('data-u');save();updateUserBtn();document.getElementById('mUsr').classList.remove('show');});})(bs[j]);
+  }
+  document.getElementById('mUsr').classList.add('show');
+});
+
+// Modal close
+var modals=['mProd','mPed','mUsr'];
+for(var mi=0;mi<modals.length;mi++){
+  (function(id){document.getElementById(id).addEventListener('click',function(e){if(e.target===e.currentTarget)e.currentTarget.classList.remove('show');});})(modals[mi]);
+}
+
+// === CONFIG EVENTS ===
+document.getElementById('proxyUrl').addEventListener('change',function(){S.config.proxyUrl=this.value.trim();save();renderConf();});
+document.getElementById('addMem').addEventListener('click',function(){var inp=document.getElementById('newMem');var n=inp.value.trim();if(n&&S.config.familia.indexOf(n)<0){S.config.familia.push(n);inp.value='';save();renderConf();}});
+document.getElementById('expB').addEventListener('click',function(){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));a.download='despensa_respaldo.json';a.click();});
+document.getElementById('impB').addEventListener('click',function(){document.getElementById('impF').click();});
+document.getElementById('impF').addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){try{S=JSON.parse(ev.target.result);save();renderAll();updateUserBtn();showToast('Datos importados','ok');}catch(err){showToast('Error al importar','err');}};r.readAsText(f);});
+document.getElementById('rstB').addEventListener('click',function(){if(confirm('Resetear todos los datos?')){seed();save();renderAll();updateUserBtn();}});
+
+// === TEST OPENAI ===
+document.getElementById('testApi').addEventListener('click',function(){
+  S.config.proxyUrl=document.getElementById('proxyUrl').value.trim();save();renderConf();
+  var res=document.getElementById('testRes');
+  if(!S.config.proxyUrl){res.className='tres terr';res.textContent='Ingresa la URL del proxy';return;}
+  res.className='tres';res.textContent='Probando...';res.style.background='var(--acb)';res.style.color='var(--ac)';
+  callOpenAI({model:'gpt-4o-mini',messages:[{role:'user',content:'Responde exactamente: OK'}],max_tokens:10})
+  .then(function(d){var txt=d.choices&&d.choices[0]?d.choices[0].message.content:'OK';res.className='tres tok';res.textContent='CONEXION OK: '+txt;res.style.background='';res.style.color='';})
+  .catch(function(err){res.className='tres terr';res.textContent='ERROR: '+err.message;res.style.background='';res.style.color='';});
+});
+
+// === VOICE ===
+var isRec=false, mediaRec=null, chunks=[];
+var hasSpeech=!!(window.SpeechRecognition||window.webkitSpeechRecognition);
+
+function startVoice(){if(isRec){stopVoice();return;}if(hasSpeech)startWebSpeech();else startWhisper();}
+function stopVoice(){
+  var mic=document.getElementById('uMic');var stat=document.getElementById('uStat');
+  if(mic._rec){mic._rec.stop();mic._rec=null;}
+  if(mediaRec&&mediaRec.state==='recording')mediaRec.stop();
+  isRec=false;mic.classList.remove('rec','proc');stat.classList.remove('show');
+}
+
+function startWebSpeech(){
+  var SRC=window.SpeechRecognition||window.webkitSpeechRecognition;
+  var rec=new SRC();rec.lang='es-CL';rec.continuous=false;rec.interimResults=false;
+  var mic=document.getElementById('uMic');var stat=document.getElementById('uStat');
+  rec.onstart=function(){isRec=true;mic.classList.add('rec');stat.textContent='Escuchando...';stat.classList.add('show');};
+  rec.onresult=function(e){var text=e.results[0][0].transcript;mic.classList.remove('rec');stat.classList.remove('show');isRec=false;mic._rec=null;if(text){document.getElementById('uInput').value=text;processCommand(text);}};
+  rec.onerror=function(e){mic.classList.remove('rec');stat.classList.remove('show');isRec=false;mic._rec=null;if(e.error==='not-allowed')alert('Permite acceso al microfono');else startWhisper();};
+  rec.onend=function(){if(isRec){mic.classList.remove('rec');stat.classList.remove('show');isRec=false;mic._rec=null;}};
+  mic._rec=rec;rec.start();
+}
+
+function startWhisper(){
+  if(!S.config.proxyUrl){showToast('Configura proxy en Config','err');return;}
+  var mic=document.getElementById('uMic');var stat=document.getElementById('uStat');
+  navigator.mediaDevices.getUserMedia({audio:true})
+  .then(function(stream){
+    var mime=MediaRecorder.isTypeSupported('audio/webm')?'audio/webm':'audio/mp4';
+    mediaRec=new MediaRecorder(stream,{mimeType:mime});chunks=[];
+    mediaRec.ondataavailable=function(e){if(e.data.size>0)chunks.push(e.data);};
+    mediaRec.onstop=function(){
+      stream.getTracks().forEach(function(t){t.stop();});
+      mic.classList.remove('rec');mic.classList.add('proc');stat.textContent='Procesando...';stat.classList.add('show');
+      var blob=new Blob(chunks,{type:mime});
+      var reader=new FileReader();
+      reader.onload=function(ev){
+        var base64=ev.target.result.split(',')[1];
+        callOpenAI({_whisper:true,_audioBase64:base64,_mimeType:mime})
+        .then(function(d){mic.classList.remove('proc');stat.classList.remove('show');isRec=false;if(d.text){document.getElementById('uInput').value=d.text;processCommand(d.text);}})
+        .catch(function(){mic.classList.remove('proc');stat.classList.remove('show');isRec=false;});
+      };
+      reader.readAsDataURL(blob);
+    };
+    mediaRec.start();isRec=true;mic.classList.add('rec');stat.textContent='Escuchando...';stat.classList.add('show');
+  })
+  .catch(function(){alert('Permite acceso al microfono');});
+}
+document.getElementById('uMic').addEventListener('click',startVoice);
+
+// === PROCESS COMMAND (OpenAI as central engine) ===
+function processCommand(text) {
+  if (!S.config.proxyUrl) { showToast('Configura el proxy en Config', 'err'); return; }
+  showToast('Procesando...', 'info');
+
+  var inv = '';
+  for (var i=0; i<S.productos.length; i++) {
+    var p = S.productos[i];
+    inv += p.nombre+':'+p.cantidadActual+p.unidad+'(min'+p.stockMinimo+'); ';
+  }
+
+  var pedidos = '';
+  for (var j=0; j<S.pedidos.length; j++) {
+    if (S.pedidos[j].estado==='pendiente') {
+      pedidos += S.pedidos[j].texto+' x'+S.pedidos[j].cantidad+' ('+S.pedidos[j].por+'); ';
+    }
+  }
+
+  var sysMsg = 'Eres el asistente de la despensa familiar Guzman Cox en Chile. ' +
+    'Familia: '+S.config.familia.join(', ')+'. Usuario activo: '+S.config.activeUser+'. ' +
+    'Pupe es intolerante a lactosa.\n' +
+    'INVENTARIO ACTUAL: '+inv+'\n' +
+    'PEDIDOS PENDIENTES: '+(pedidos||'ninguno')+'\n\n' +
+    'RESPONDE SOLO JSON VALIDO: {"acciones":[...],"respuesta":"texto breve confirmando"}\n\n' +
+    'ACCIONES:\n' +
+    '1. {"tipo":"actualizar","producto":"Nombre","cantidad":N} - Cambia stock\n' +
+    '2. {"tipo":"crear","nombre":"X","categoria":"Cat","unidad":"un","cantidad":N,"stockMinimo":1} - Producto nuevo\n' +
+    '3. {"tipo":"pedido","texto":"X","solicitadoPor":"Persona","cantidad":N,"comentario":""} - Pedido de compra\n\n' +
+    'CATEGORIAS VALIDAS: Lacteos, Carnes, Verduras, Frutas, Abarrotes, Limpieza, Bebidas, Congelados, Panaderia, Pupe, Otro\n\n' +
+    'REGLAS DE INTERPRETACION:\n' +
+    '- "hay X" o "tengo X" o "quedan X" = ACTUALIZAR stock del producto existente\n' +
+    '- "se acabo X" o "no hay X" = ACTUALIZAR a cantidad 0\n' +
+    '- "falta X" o "faltan X" = DOBLE ACCION: crear PEDIDO + si no existe en inventario, CREAR producto con cantidad 0 y categoria correcta\n' +
+    '- "pedir X" o "comprar X" o "necesito X" = PEDIDO de compra\n' +
+    '- "agregar X" = CREAR producto nuevo en despensa con cantidad 1 y categoria correcta\n' +
+    '- Nombre de persona + quiere/necesita/pide = PEDIDO asignado a esa persona\n' +
+    '- Si ya existe pedido pendiente del mismo producto, ACTUALIZA cantidad (no duplicar)\n' +
+    '- IMPORTANTE: Al crear producto nuevo, SIEMPRE asigna la categoria correcta (ej: cerveza=Bebidas, pan=Panaderia, pollo=Carnes, tomate=Verduras, detergente=Limpieza)\n' +
+    '- IMPORTANTE: Si dicen "falta" un producto que YA EXISTE en inventario, pon su stock en 0 Y crea pedido\n' +
+    '- El campo "producto" en actualizar debe coincidir con nombre del inventario\n' +
+    '- NO uses markdown. SOLO JSON puro.';
+
+  callOpenAI({
+    model:'gpt-4o-mini',
+    messages:[{role:'system',content:sysMsg},{role:'user',content:text}],
+    temperature:0.2, max_tokens:600
+  })
+  .then(function(data) {
+    if (!data||!data.choices||!data.choices[0]||!data.choices[0].message) {
+      showToast('Respuesta inesperada de OpenAI','err'); return;
+    }
+    var raw = data.choices[0].message.content;
+    var clean = raw.replace(/```json?\n?/g,'').replace(/```/g,'').trim();
+    var parsed;
+    try { parsed = JSON.parse(clean); }
+    catch(e) { showToast('IA no respondio JSON: '+raw.substring(0,60),'err'); return; }
+
+    var msgs = [];
+    var acciones = parsed.acciones || parsed.actions || [];
+    if (!acciones.length && parsed.tipo) acciones = [parsed];
+
+    for (var i=0; i<acciones.length; i++) {
+      var a = acciones[i];
+
+      if (a.tipo === 'actualizar') {
+        var p = findProduct(a.producto);
+        if (p) {
+          p.cantidadActual = Math.max(0, typeof a.cantidad==='number'?a.cantidad:0);
+          p.upd=now(); p.by=S.config.activeUser;
+          msgs.push(p.nombre+' -> '+p.cantidadActual);
+        } else {
+          S.productos.push({id:nid(S.productos),nombre:a.producto||'Nuevo',categoria:'Otro',unidad:'un',cantidadActual:typeof a.cantidad==='number'?a.cantidad:0,stockMinimo:1,canal:'uber_eats',upd:now(),by:S.config.activeUser});
+          msgs.push('Creado: '+a.producto);
+        }
+      }
+      else if (a.tipo === 'pedido') {
+        var pedText = a.texto||a.producto||a.nombre||'Pedido';
+        var pedQty = a.cantidad||1;
+        var pedPor = a.solicitadoPor||a.por||S.config.activeUser;
+        // Check for existing pending pedido
+        var existPed = null;
+        for (var ep=0; ep<S.pedidos.length; ep++) {
+          if (S.pedidos[ep].estado==='pendiente' && S.pedidos[ep].texto.toLowerCase()===pedText.toLowerCase()) { existPed=S.pedidos[ep]; break; }
+        }
+        if (existPed) { existPed.cantidad=pedQty; existPed.por=pedPor; existPed.fecha=now(); msgs.push('Pedido actualizado: '+pedText+' x'+pedQty); }
+        else { S.pedidos.push({id:nid(S.pedidos),texto:pedText,cantidad:pedQty,por:pedPor,com:a.comentario||'',fecha:now(),estado:'pendiente'}); msgs.push('Pedido: '+pedText+' x'+pedQty); }
+        // Ensure in despensa
+        if (!findProduct(pedText)) {
+          S.productos.push({id:nid(S.productos),nombre:pedText,categoria:a.categoria||'Otro',unidad:a.unidad||'un',cantidadActual:0,stockMinimo:pedQty,canal:'uber_eats',upd:now(),by:S.config.activeUser});
+        }
+      }
+      else if (a.tipo === 'crear') {
+        var nombre = a.nombre||a.producto||'Nuevo';
+        var existing = findProduct(nombre);
+        if (existing) { existing.cantidadActual+=(a.cantidad||1); existing.upd=now(); existing.by=S.config.activeUser; msgs.push(existing.nombre+' +'+( a.cantidad||1)); }
+        else { S.productos.push({id:nid(S.productos),nombre:nombre,categoria:a.categoria||'Otro',unidad:a.unidad||'un',cantidadActual:typeof a.cantidad==='number'?a.cantidad:1,stockMinimo:a.stockMinimo||1,canal:a.canal||dCan(a.categoria||'Otro'),upd:now(),by:S.config.activeUser}); msgs.push('Nuevo: '+nombre); }
+      }
+    }
+
+    save(); renderAll();
+    var toastMsg = parsed.respuesta||'Listo!';
+    if (msgs.length) toastMsg += ' | '+msgs.join(', ');
+    showToast(toastMsg, msgs.length?'ok':'err');
+  })
+  .catch(function(err) { showToast('Error: '+err.message, 'err'); });
+}
+
+// Send
+document.getElementById('uSend').addEventListener('click',function(){var inp=document.getElementById('uInput');var t=inp.value.trim();if(!t)return;inp.value='';processCommand(t);});
+document.getElementById('uInput').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();document.getElementById('uSend').click();}});
+
+// === INIT ===
+load();
+updateUserBtn();
+renderAll();
+
+// Load from cloud on startup (if proxy configured)
+if (S.config.proxyUrl) {
+  loadFromCloud().then(function(updated) {
+    if (updated) {
+      renderAll();
+      showToast('Datos sincronizados', 'ok');
+    }
+  });
+}
+
+// Also sync when tab becomes visible (user switches back to app)
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && S.config.proxyUrl) {
+    loadFromCloud().then(function(updated) {
+      if (updated) { renderAll(); }
+    });
+  }
+});
