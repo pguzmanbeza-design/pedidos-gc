@@ -3,7 +3,7 @@
 // ==========================================
 
 var AVATARS = {
-  Pablo:'avatar-pablo.png', Pupe:'avatar-pupe.jpg',
+  Pablo:'avatar-pablo.png', Pupe:'avatar-pupe.png',
   Mama:'avatar-mama.png', Papa:'avatar-papa.png',
   Chichi:'avatar-chichi.png', Ester:'avatar-ester.png'
 };
@@ -578,18 +578,28 @@ function processCommand(text) {
     '1. {"tipo":"actualizar","producto":"Nombre","cantidad":N} - Cambia stock\n' +
     '2. {"tipo":"crear","nombre":"X","categoria":"Cat","unidad":"un","cantidad":N,"stockMinimo":1} - Producto nuevo\n' +
     '3. {"tipo":"pedido","texto":"X","solicitadoPor":"Persona","cantidad":N,"comentario":""} - Pedido de compra\n\n' +
-    'CATEGORIAS VALIDAS: Lacteos, Carnes, Verduras, Frutas, Abarrotes, Limpieza, Bebidas, Congelados, Panaderia, Pupe, Otro\n\n' +
-    'REGLAS DE INTERPRETACION:\n' +
-    '- "hay X" o "tengo X" o "quedan X" = ACTUALIZAR stock del producto existente\n' +
-    '- "se acabo X" o "no hay X" = ACTUALIZAR a cantidad 0\n' +
-    '- "falta X" o "faltan X" = DOBLE ACCION: crear PEDIDO + si no existe en inventario, CREAR producto con cantidad 0 y categoria correcta\n' +
-    '- "pedir X" o "comprar X" o "necesito X" = PEDIDO de compra\n' +
-    '- "agregar X" = CREAR producto nuevo en despensa con cantidad 1 y categoria correcta\n' +
-    '- Nombre de persona + quiere/necesita/pide = PEDIDO asignado a esa persona\n' +
+    'CATEGORIAS (elige la correcta SIEMPRE):\n' +
+    '- Lacteos: leche, yogur, queso, mantequilla, crema, manjar\n' +
+    '- Carnes: pollo, carne, cerdo, salmon, pescado, jamon, vienesas, tocino\n' +
+    '- Verduras: tomate, lechuga, cebolla, zanahoria, pepino, pimenton, apio, brocoli, espinaca\n' +
+    '- Frutas: manzana, platano, palta, naranja, limon, uva, frutilla, kiwi\n' +
+    '- Abarrotes: arroz, pasta, fideos, aceite, atun, lentejas, harina, azucar, sal, pimienta, comino, oregano, garam masala, curry, mostaza, ketchup, mayo, salsa soya, vinagre, mermelada\n' +
+    '- Limpieza: detergente, jabon, papel higienico, cloro, esponja, bolsas basura, desinfectante, shampoo, pasta dientes\n' +
+    '- Bebidas: agua, jugo, cerveza, vino, coca cola, bebida, cafe, te\n' +
+    '- Congelados: helado, pizza congelada, papas fritas congeladas\n' +
+    '- Panaderia: pan, pan molde, galletas, queque, torta\n' +
+    '- Pupe: leche almendra, yogur vegano, queso vegano, todo lo sin lactosa o vegano para Pupe\n' +
+    '- Otro: solo si NO encaja en ninguna categoria anterior\n\n' +
+    'REGLAS:\n' +
+    '- "hay X" o "tengo X" o "quedan X" = ACTUALIZAR stock\n' +
+    '- "se acabo X" o "no hay X" = ACTUALIZAR a 0\n' +
+    '- "falta X" o "faltan X" = PEDIDO + CREAR producto si no existe (cantidad 0)\n' +
+    '- "pedir X" o "comprar X" o "necesito X" = PEDIDO\n' +
+    '- "agregar X" = CREAR producto nuevo con cantidad 1\n' +
+    '- Nombre de persona + quiere/necesita = PEDIDO para esa persona\n' +
     '- Si ya existe pedido pendiente del mismo producto, ACTUALIZA cantidad (no duplicar)\n' +
-    '- IMPORTANTE: Al crear producto nuevo, SIEMPRE asigna la categoria correcta (ej: cerveza=Bebidas, pan=Panaderia, pollo=Carnes, tomate=Verduras, detergente=Limpieza)\n' +
-    '- IMPORTANTE: Si dicen "falta" un producto que YA EXISTE en inventario, pon su stock en 0 Y crea pedido\n' +
-    '- El campo "producto" en actualizar debe coincidir con nombre del inventario\n' +
+    '- Si "falta" un producto que YA EXISTE, pon stock en 0 Y crea pedido\n' +
+    '- NUNCA pongas categoria "Otro" si el producto encaja en alguna categoria de la lista\n' +
     '- NO uses markdown. SOLO JSON puro.';
 
   callOpenAI({

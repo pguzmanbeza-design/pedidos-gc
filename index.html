@@ -5,9 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Despensa">
 <meta name="theme-color" content="#ffffff">
-<title>Despensa Familiar</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Pedidos Guzman Cox">
+<meta name="format-detection" content="telephone=no">
+<title>Pedidos Guzman Cox</title>
+<link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="manolo.jpeg">
+<link rel="icon" type="image/jpeg" href="manolo.jpeg">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -16,80 +22,99 @@
   --ok:#1A7A4A;--okb:#e8f5ee;--lo:#D46000;--lob:#fef3e8;
   --em:#C8002E;--emb:#fce8ed;--ac:#2563EB;--acb:#eff6ff;
   --ub:#06C167;--fe:#2D8B4E;--pu:#7C5CBF;--pub:#f0ebfa;
-  --rs:8px;--sh:0 1px 3px rgba(0,0,0,.06);
-  --th:52px;--hh:48px;--ib:52px;
+  --rs:10px;--sh:0 1px 4px rgba(0,0,0,.06);
+  --th:56px;--hh:68px;--ib:56px;
   --sb:env(safe-area-inset-bottom,0px);
+  --st:env(safe-area-inset-top,0px);
 }
-html{font-size:15px}
-body{font-family:-apple-system,system-ui,Arial,sans-serif;background:var(--bg);color:var(--g9);min-height:100dvh;overflow-x:hidden;padding-top:var(--hh);padding-bottom:calc(var(--th)+var(--ib)+var(--sb)+4px);-webkit-font-smoothing:antialiased}
+html{font-size:15px;height:100%}
+body{
+  font-family:-apple-system,system-ui,'SF Pro Display',Arial,sans-serif;
+  background:var(--bg);color:var(--g9);
+  min-height:100%;overflow-x:hidden;
+  padding-top:calc(var(--hh) + var(--st));
+  padding-bottom:calc(var(--th) + var(--ib) + var(--sb) + 8px);
+  -webkit-font-smoothing:antialiased;
+}
 button,input,select{font-family:inherit;font-size:inherit;border:none;outline:none;background:none}
 button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 input,select{-webkit-appearance:none;appearance:none}
 
 /* Header */
-.hdr{position:fixed;top:0;left:0;right:0;height:var(--hh);background:var(--wh);display:flex;align-items:center;gap:8px;padding:0 12px;z-index:100;border-bottom:1px solid var(--g2)}
-.hdr-av{width:30px;height:30px;border-radius:50%;background:var(--g1);overflow:hidden}
-.hdr-av img{width:100%;height:100%;object-fit:contain;object-position:center top}
-.hdr-t{font-size:16px;font-weight:700;flex:1}
-.hdr-help{width:28px;height:28px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--ac)}
-.hdr-u{font-size:10px;color:var(--ac);font-weight:700;padding:4px 10px;border-radius:14px;background:var(--acb);display:flex;align-items:center;gap:4px}
-.hdr-u img{width:20px;height:20px;border-radius:50%;object-fit:contain;object-position:center top;background:var(--g1)}
+.hdr{position:fixed;top:0;left:0;right:0;padding-top:var(--st);background:#fff;z-index:100;border-bottom:1px solid var(--g2)}
+.hdr-top{display:flex;align-items:center;gap:8px;padding:6px 14px;position:relative;z-index:2}
+.hdr-t{font-size:16px;font-weight:700;color:var(--g9);flex:none}
+.hdr-logo{flex:1;height:26px;object-fit:contain;object-position:center}
+.hdr-help{width:28px;height:28px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--g7)}
+.hdr-u{
+  font-size:11px;color:var(--ac);font-weight:700;padding:4px 10px;border-radius:16px;
+  background:var(--acb);display:flex;align-items:center;gap:5px;
+}
+.hdr-u img{width:24px;height:24px;border-radius:50%;object-fit:contain;object-position:center top;background:var(--g1);border:1px solid var(--g2)}
+.hdr-logo-row{display:none}
 
-/* Tabs - only 3 */
-.tbar{position:fixed;bottom:0;left:0;right:0;height:calc(var(--th)+var(--sb));background:var(--wh);display:flex;z-index:100;border-top:1px solid var(--g2);padding-bottom:var(--sb)}
-.tb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:9px;font-weight:600;color:var(--g5);height:var(--th);position:relative}
+/* Tabs */
+.tbar{
+  position:fixed;bottom:0;left:0;right:0;
+  height:calc(var(--th) + var(--sb));
+  background:var(--wh);display:flex;z-index:100;
+  border-top:1px solid var(--g2);padding-bottom:var(--sb);
+}
+.tb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;font-weight:600;color:var(--g5);height:var(--th);position:relative}
 .tb.on{color:var(--ac)}
-.tb svg{width:20px;height:20px;fill:currentColor}
-.badge{position:absolute;top:3px;right:calc(50% - 16px);background:var(--em);color:#fff;font-size:8px;min-width:15px;height:15px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px;font-weight:700}
+.tb svg{width:22px;height:22px;fill:currentColor}
+.badge{position:absolute;top:4px;right:calc(50% - 18px);background:var(--em);color:#fff;font-size:9px;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px;font-weight:700}
 
-/* Input Bar - mic is hero */
-.ubar{position:fixed;bottom:calc(var(--th)+var(--sb));left:0;right:0;height:var(--ib);background:var(--wh);border-top:1px solid var(--g2);display:flex;align-items:center;gap:6px;padding:0 10px;z-index:99}
-.ubar input{flex:1;height:36px;border-radius:18px;background:var(--g1);padding:0 14px;font-size:13px;border:1px solid var(--g2)}
-.ubar-btn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+/* Input Bar */
+.ubar{
+  position:fixed;bottom:calc(var(--th) + var(--sb));left:0;right:0;
+  height:var(--ib);background:var(--wh);border-top:1px solid var(--g2);
+  display:flex;align-items:center;gap:8px;padding:0 10px;z-index:99;
+}
+.ubar input{flex:1;height:38px;border-radius:19px;background:var(--g1);padding:0 14px;font-size:13px;border:1px solid var(--g2)}
+.ubar-btn{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .ubar-btn svg{width:18px;height:18px;fill:currentColor}
-.mic-btn{background:var(--g9);color:#fff;width:42px;height:42px;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.mic-btn{background:var(--g9);color:#fff;width:46px;height:46px;border-radius:50%;box-shadow:0 3px 12px rgba(0,0,0,.25)}
 .mic-btn.rec{background:var(--em);animation:pulse 1s infinite}
 .mic-btn.proc{background:var(--lo);animation:none}
 .send-btn{background:var(--ac);color:#fff}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 
 /* Toast */
-.toast{position:fixed;top:calc(var(--hh)+6px);left:10px;right:10px;padding:10px 14px;border-radius:12px;font-size:12px;font-weight:600;z-index:150;box-shadow:0 4px 20px rgba(0,0,0,.15);display:none;text-align:center}
+.toast{position:fixed;top:calc(var(--hh) + var(--st) + 8px);left:10px;right:10px;padding:10px 14px;border-radius:12px;font-size:12px;font-weight:600;z-index:150;box-shadow:0 4px 20px rgba(0,0,0,.15);display:none;text-align:center}
 .toast.show{display:block}
 .toast.ok{background:var(--okb);color:var(--ok)}
 .toast.err{background:var(--emb);color:var(--em)}
 .toast.info{background:var(--acb);color:var(--ac)}
 
 /* Voice status */
-.ubar-st{position:fixed;bottom:calc(var(--th)+var(--ib)+var(--sb)+4px);left:50%;transform:translateX(-50%);background:var(--g9);color:#fff;padding:4px 14px;border-radius:12px;font-size:11px;font-weight:600;z-index:99;display:none}
+.ubar-st{position:fixed;bottom:calc(var(--th)+var(--ib)+var(--sb)+6px);left:50%;transform:translateX(-50%);background:var(--g9);color:#fff;padding:5px 16px;border-radius:14px;font-size:12px;font-weight:600;z-index:99;display:none}
 .ubar-st.show{display:block}
 
 /* Views */
-.vw{display:none;padding:8px 10px 12px}
+.vw{display:none;padding:10px 12px 14px}
 .vw.on{display:block}
 
-/* === DESPENSA === */
-/* Alert banner for missing */
-.missing-banner{background:var(--emb);color:var(--em);padding:8px 12px;border-radius:var(--rs);font-size:13px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px}
-.missing-banner .mb-num{font-size:20px;font-weight:800}
-.missing-banner .mb-txt{flex:1}
+/* Missing banner */
+.missing-banner{background:var(--emb);color:var(--em);padding:10px 14px;border-radius:var(--rs);font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.missing-banner .mb-num{font-size:24px;font-weight:800}
 .missing-banner.hidden{display:none}
 
 /* Search */
-.swp{position:relative;margin-bottom:6px}
-.swp input{width:100%;height:34px;background:var(--wh);border-radius:17px;padding:0 32px 0 12px;font-size:13px;box-shadow:var(--sh);border:1px solid var(--g2)}
-.swp svg{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;fill:var(--g5)}
+.swp{position:relative;margin-bottom:8px}
+.swp input{width:100%;height:38px;background:var(--wh);border-radius:19px;padding:0 36px 0 14px;font-size:13px;box-shadow:var(--sh);border:1px solid var(--g2)}
+.swp svg{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;fill:var(--g5)}
 
-/* Product grid 3 col */
-.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+/* Grid */
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 @media(max-width:359px){.pgrid{grid-template-columns:repeat(2,1fr)}}
 @media(min-width:430px){.pgrid{grid-template-columns:repeat(4,1fr)}}
 
-.pc{background:var(--wh);border-radius:var(--rs);padding:8px 7px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:3px;border-left:3px solid var(--ok);position:relative}
-.pc.s-low{border-left-color:var(--lo);background:var(--lob)}
-.pc.s-empty{border-left-color:var(--em);background:var(--emb)}
+.pc{background:var(--wh);border-radius:var(--rs);padding:8px;display:flex;flex-direction:column;gap:3px;border-left:4px solid var(--ok);border:1px solid var(--g2);border-left-width:4px}
+.pc.s-low{border-left-color:var(--lo);background:var(--lob);border-color:var(--lo)}
+.pc.s-empty{border-left-color:var(--em);background:var(--emb);border-color:var(--em);border-width:2px;border-left-width:5px}
 .pc.s-feria{border-left-color:var(--fe)}
-.pc.s-pupe{border-left-color:var(--pu);background:var(--pub)}
+.pc.s-pupe{border-left-color:var(--pu);background:var(--pub);border-color:var(--pu)}
 .pc .pn{font-size:12px;font-weight:700;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pc .pq{font-size:22px;font-weight:800;line-height:1;margin-top:auto}
 .pq.q-ok{color:var(--ok)}.pq.q-low{color:var(--lo)}.pq.q-empty{color:var(--em)}
@@ -99,161 +124,138 @@ input,select{-webkit-appearance:none;appearance:none}
 .pbtn:active{background:var(--g3)}
 
 /* Section headers */
-.shdr{grid-column:1/-1;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--g5);padding:8px 2px 3px;display:flex;align-items:center;gap:6px}
+.shdr{grid-column:1/-1;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--g5);padding:10px 2px 3px;display:flex;align-items:center;gap:6px}
 .shdr .sd{width:8px;height:8px;border-radius:50%}
 .shdr.sh-fv{color:var(--fe)}.shdr.sh-fv .sd{background:var(--fe)}
 .shdr.sh-pu{color:var(--pu)}.shdr.sh-pu .sd{background:var(--pu)}
 
 /* FAB */
-.fab{position:fixed;bottom:calc(var(--th)+var(--ib)+var(--sb)+10px);right:12px;width:46px;height:46px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 3px 14px rgba(37,99,235,.35);z-index:90}
+.fab{position:fixed;bottom:calc(var(--th)+var(--ib)+var(--sb)+12px);right:14px;width:48px;height:48px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 4px 16px rgba(37,99,235,.4);z-index:90}
 .fab:active{transform:scale(.92)}
 
-/* === PEDIDOS === */
-.pgrp{margin-bottom:12px}
-.pgt{font-size:12px;font-weight:700;margin-bottom:4px;padding:3px 8px;border-radius:var(--rs);display:inline-flex;align-items:center;gap:6px;background:var(--acb);color:var(--ac)}
-.pgt img{width:18px;height:18px;border-radius:50%;object-fit:contain;object-position:center top;background:var(--g1)}
-.pdc{background:var(--wh);border-radius:var(--rs);padding:8px 10px;margin-bottom:3px;box-shadow:var(--sh);display:flex;align-items:center;gap:8px}
-.pdc.done{opacity:.35}
-.pck{width:22px;height:22px;border-radius:50%;border:2px solid var(--g3);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+/* Pedidos */
+.pgrp{margin-bottom:14px}
+.pgt{font-size:13px;font-weight:700;margin-bottom:5px;padding:4px 10px;border-radius:var(--rs);display:inline-flex;align-items:center;gap:8px;background:var(--acb);color:var(--ac)}
+.pgt img{width:22px;height:22px;border-radius:50%;object-fit:contain;object-position:center top;background:var(--g1);border:1px solid var(--g2)}
+.pdc{background:var(--wh);border-radius:var(--rs);padding:10px 12px;margin-bottom:4px;box-shadow:var(--sh);display:flex;align-items:center;gap:10px}
+.pdc.done{opacity:.3}
+.pck{width:24px;height:24px;border-radius:50%;border:2px solid var(--g3);flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .pck.ckd{background:var(--ok);border-color:var(--ok);color:#fff}
-.pck svg{width:13px;height:13px;fill:currentColor}
-.pdt{font-size:13px;font-weight:600}
-.pdm{font-size:9px;color:var(--g5)}
-.pdx{font-size:16px;color:var(--g5);padding:4px}
+.pck svg{width:14px;height:14px;fill:currentColor}
+.pdt{font-size:14px;font-weight:600}
+.pdm{font-size:10px;color:var(--g5)}
+.pdx{font-size:18px;color:var(--g5);padding:4px}
 
 /* Chips */
-.chs{display:flex;gap:4px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none}
+.chs{display:flex;gap:5px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
 .chs::-webkit-scrollbar{display:none}
-.ch{white-space:nowrap;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;background:var(--wh);color:var(--g7);border:1px solid var(--g2);flex-shrink:0}
+.ch{white-space:nowrap;padding:5px 12px;border-radius:14px;font-size:12px;font-weight:600;background:var(--wh);color:var(--g7);border:1px solid var(--g2);flex-shrink:0}
 .ch.on{background:var(--ac);color:#fff;border-color:var(--ac)}
 
-/* === CONFIG === */
-.csec{margin-bottom:16px}
+/* Config */
+.csec{margin-bottom:18px}
 .csec h3{font-size:12px;font-weight:700;text-transform:uppercase;color:var(--g5);margin-bottom:6px}
-.crow{background:var(--wh);border-radius:var(--rs);padding:10px;margin-bottom:4px;box-shadow:var(--sh);display:flex;align-items:center;gap:8px}
-.crow label{flex:1;font-size:12px;font-weight:600}
-.crow input{flex:1;height:34px;border-radius:8px;background:var(--g1);padding:0 10px;font-size:12px}
-.cbtn{width:100%;padding:10px;border-radius:var(--rs);font-size:13px;font-weight:700;text-align:center;margin-bottom:4px}
+.crow{background:var(--wh);border-radius:var(--rs);padding:12px;margin-bottom:5px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:6px}
+.crow label{font-size:12px;font-weight:600;color:var(--g7)}
+.crow input,.crow select{width:100%;height:38px;border-radius:8px;background:var(--g1);padding:0 12px;font-size:13px}
+.cbtn{width:100%;padding:12px;border-radius:var(--rs);font-size:14px;font-weight:700;text-align:center;margin-bottom:5px}
 .cbtn.pri{background:var(--ac);color:#fff}.cbtn.dan{background:var(--emb);color:var(--em)}.cbtn.sec{background:var(--g1);color:var(--g7)}
 .cbtn:active{opacity:.8}
-.fchips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
-.fchip{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;background:var(--acb);color:var(--ac);display:flex;align-items:center;gap:4px}
-.fchip img{width:16px;height:16px;border-radius:50%;object-fit:contain;object-position:center top;background:var(--g1)}
-.fadd{display:flex;gap:5px}
-.fadd input{flex:1;height:32px;border-radius:8px;background:var(--g1);padding:0 10px;font-size:12px}
-.fadd button{padding:0 12px;border-radius:8px;background:var(--ac);color:#fff;font-size:12px;font-weight:700}
-.tres{margin-top:6px;padding:8px;border-radius:var(--rs);font-size:11px;font-weight:600;word-break:break-all}
+.fchips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.fchip{padding:4px 12px;border-radius:14px;font-size:12px;font-weight:600;background:var(--acb);color:var(--ac);display:flex;align-items:center;gap:6px}
+.fchip img{width:22px;height:22px;border-radius:50%;object-fit:contain;object-position:center top;background:var(--g1);border:1px solid var(--g2)}
+.fadd{display:flex;gap:6px}
+.fadd input{flex:1;height:34px;border-radius:8px;background:var(--g1);padding:0 12px;font-size:13px}
+.fadd button{padding:0 14px;border-radius:8px;background:var(--ac);color:#fff;font-size:13px;font-weight:700}
+.tres{margin-top:8px;padding:10px;border-radius:var(--rs);font-size:12px;font-weight:600;word-break:break-all}
 .tres.tok{background:var(--okb);color:var(--ok)}
 .tres.terr{background:var(--emb);color:var(--em)}
 
 /* Modal */
 .mo{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:flex-end;justify-content:center}
 .mo.show{display:flex}
-.ml{background:var(--wh);border-radius:20px 20px 0 0;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;padding:16px 14px calc(14px+var(--sb))}
-.ml h2{font-size:16px;font-weight:700;margin-bottom:12px;text-align:center}
-.mf{margin-bottom:10px}
-.mf label{display:block;font-size:11px;font-weight:600;color:var(--g5);margin-bottom:3px;text-transform:uppercase}
-.mf input,.mf select{width:100%;height:40px;border-radius:10px;background:var(--g1);padding:0 12px;font-size:13px}
-.ma{display:flex;gap:6px;margin-top:12px}
-.ma button{flex:1;height:42px;border-radius:10px;font-size:13px;font-weight:700}
+.ml{background:var(--wh);border-radius:20px 20px 0 0;width:100%;max-width:500px;max-height:85vh;overflow-y:auto;padding:18px 16px calc(16px+var(--sb))}
+.ml h2{font-size:17px;font-weight:700;margin-bottom:14px;text-align:center}
+.mf{margin-bottom:12px}
+.mf label{display:block;font-size:11px;font-weight:600;color:var(--g5);margin-bottom:4px;text-transform:uppercase}
+.mf input,.mf select{width:100%;height:42px;border-radius:10px;background:var(--g1);padding:0 14px;font-size:14px}
+.ma{display:flex;gap:6px;margin-top:14px}
+.ma button{flex:1;height:44px;border-radius:12px;font-size:14px;font-weight:700}
 .bsv{background:var(--ac);color:#fff}.bcn{background:var(--g1);color:var(--g7)}.bdl{background:var(--emb);color:var(--em)}
 
 /* Help */
 .help-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:center;justify-content:center;padding:16px}
 .help-modal.show{display:flex}
-.help-content{background:var(--wh);border-radius:16px;width:100%;max-width:380px;max-height:80vh;overflow-y:auto;padding:18px;position:relative}
-.help-close{position:absolute;top:10px;right:12px;font-size:22px;color:var(--g5)}
-.help-content h2{font-size:16px;font-weight:800;margin-bottom:14px;text-align:center}
-.hsec{margin-bottom:14px}
-.hsec h3{font-size:11px;font-weight:700;text-transform:uppercase;color:#fff;padding:3px 10px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.help-content{background:var(--wh);border-radius:20px;width:100%;max-width:380px;max-height:80vh;overflow-y:auto;padding:20px;position:relative}
+.help-close{position:absolute;top:12px;right:14px;font-size:24px;color:var(--g5)}
+.help-content h2{font-size:17px;font-weight:800;margin-bottom:16px;text-align:center}
+.hsec{margin-bottom:16px}
+.hsec h3{font-size:11px;font-weight:700;text-transform:uppercase;color:#fff;padding:4px 12px;border-radius:8px;display:inline-block;margin-bottom:6px}
 .hsec h3.h-desp{background:var(--ok)}.hsec h3.h-ped{background:var(--ac)}.hsec h3.h-new{background:var(--pu)}.hsec h3.h-combo{background:var(--lo)}
-.hex{font-size:13px;padding:3px 0;color:var(--g7)}
-.hex b{background:var(--g1);padding:2px 8px;border-radius:6px;font-size:12px;color:var(--g9)}
-.hrule{font-size:10px;color:var(--g5);font-weight:600;margin-top:3px;padding-left:6px;border-left:2px solid var(--g2)}
+.hex{font-size:14px;padding:4px 0;color:var(--g7)}
+.hex b{background:var(--g1);padding:3px 10px;border-radius:8px;font-size:13px;color:var(--g9)}
+.hrule{font-size:11px;color:var(--g5);font-weight:600;margin-top:4px;padding-left:8px;border-left:3px solid var(--g2)}
 
-.es{text-align:center;padding:30px 14px;color:var(--g5);font-size:13px}
+.es{text-align:center;padding:30px 14px;color:var(--g5);font-size:14px}
 </style>
 </head>
 <body>
 
 <header class="hdr">
-  <div class="hdr-av"><img src="manolo.jpeg" alt=""></div>
-  <span class="hdr-t">Despensa Familiar</span>
-  <button class="hdr-help" id="helpBtn">?</button>
-  <button class="hdr-u" id="curUser">Pablo</button>
+  <div class="hdr-top">
+    <span class="hdr-t">Pedidos Guzman Cox</span>
+    <img src="logo-manolo-white.png" alt="Manolo" class="hdr-logo">
+    <button class="hdr-help" id="helpBtn">?</button>
+    <button class="hdr-u" id="curUser">Pablo</button>
+  </div>
 </header>
 
-<!-- 3 TABS: Despensa, Pedidos, Config -->
 <nav class="tbar">
-  <button class="tb on" data-t="despensa">
-    <svg viewBox="0 0 24 24"><path d="M3 13h1v7c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-7h1a1 1 0 0 0 .7-1.7l-9-9a1 1 0 0 0-1.4 0l-9 9A1 1 0 0 0 3 13z"/></svg>
-    Despensa
-  </button>
-  <button class="tb" data-t="pedidos">
-    <svg viewBox="0 0 24 24"><path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2zm6 16H6V8h2v2c0 .55.45 1 1 1s1-.45 1-1V8h4v2c0 .55.45 1 1 1s1-.45 1-1V8h2v12z"/></svg>
-    <span class="badge" id="pBdg" style="display:none">0</span>
-    Pedidos
-  </button>
-  <button class="tb" data-t="config">
-    <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.44.17-.48.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.26.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-    Config
-  </button>
+  <button class="tb on" data-t="despensa"><svg viewBox="0 0 24 24"><path d="M3 13h1v7c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-7h1a1 1 0 0 0 .7-1.7l-9-9a1 1 0 0 0-1.4 0l-9 9A1 1 0 0 0 3 13z"/></svg>Despensa</button>
+  <button class="tb" data-t="pedidos"><svg viewBox="0 0 24 24"><path d="M18 6h-2c0-2.21-1.79-4-4-4S8 3.79 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6-2c1.1 0 2 .9 2 2h-4c0-1.1.9-2 2-2zm6 16H6V8h2v2c0 .55.45 1 1 1s1-.45 1-1V8h4v2c0 .55.45 1 1 1s1-.45 1-1V8h2v12z"/></svg><span class="badge" id="pBdg" style="display:none">0</span>Pedidos</button>
+  <button class="tb" data-t="config"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.44.17-.48.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.26.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>Config</button>
 </nav>
 
-<!-- Universal Input Bar -->
 <div class="ubar">
-  <input type="text" id="uInput" placeholder="Ej: hay leche / pedir pan">
-  <button class="ubar-btn mic-btn" id="uMic">
-    <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-  </button>
-  <button class="ubar-btn send-btn" id="uSend">
-    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-  </button>
+  <input type="text" id="uInput" placeholder="Ej: falta pan / hay leche">
+  <button class="ubar-btn mic-btn" id="uMic"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg></button>
+  <button class="ubar-btn send-btn" id="uSend"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
 </div>
 <div class="ubar-st" id="uStat"></div>
 <div class="toast" id="toast"></div>
 
-<!-- VIEW: DESPENSA -->
 <div class="vw on" id="v-despensa">
-  <div class="missing-banner hidden" id="missingBanner">
-    <span class="mb-num" id="missingNum">0</span>
-    <span class="mb-txt">productos por comprar</span>
-  </div>
-  <div class="swp">
-    <input id="srcI" placeholder="Buscar...">
-    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-  </div>
+  <div class="missing-banner hidden" id="missingBanner"><span class="mb-num" id="missingNum">0</span><span>productos por comprar</span></div>
+  <div class="swp"><input id="srcI" placeholder="Buscar..."><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></div>
   <div class="pgrid" id="dList"></div>
   <button class="fab" id="addP">+</button>
 </div>
 
-<!-- VIEW: PEDIDOS -->
 <div class="vw" id="v-pedidos">
   <div class="chs" id="pChs"></div>
   <div id="pList"></div>
   <button class="fab" id="addPed">+</button>
 </div>
 
-<!-- VIEW: CONFIG -->
 <div class="vw" id="v-config">
   <div class="csec"><h3>Conexion OpenAI</h3>
-    <div class="crow"><label>URL Proxy</label><input type="text" id="proxyUrl" placeholder="https://tu-worker.workers.dev"></div>
+    <div class="crow"><label>URL del Proxy</label><input type="text" id="proxyUrl" placeholder="https://desmensa-proxy.pguzmanbeza.workers.dev"></div>
     <button class="cbtn pri" id="testApi">Test Conexion</button>
     <div id="testRes"></div>
   </div>
   <div class="csec"><h3>Familia</h3><div class="fchips" id="famC"></div><div class="fadd"><input id="newMem" placeholder="Nombre..."><button id="addMem">+</button></div></div>
   <div class="csec"><h3>Usuario activo</h3><div class="crow"><label>Quien eres</label><select id="actUser"></select></div></div>
-  <div class="csec"><h3>Datos <span id="lastSaved" style="font-weight:400;text-transform:none;font-size:9px"></span></h3>
-    <p style="font-size:10px;color:var(--g5);padding:0 0 6px">Tus datos se guardan automaticamente en este navegador.</p>
+  <div class="csec"><h3>Datos <span id="lastSaved" style="font-weight:400;text-transform:none;font-size:10px"></span></h3>
+    <p style="font-size:11px;color:var(--g5);padding:0 0 8px">Los datos se sincronizan automaticamente con toda la familia.</p>
     <button class="cbtn pri" id="expB">Exportar respaldo</button>
     <button class="cbtn sec" id="impB">Importar respaldo</button>
     <input type="file" id="impF" accept=".json" style="display:none">
     <button class="cbtn dan" id="rstB">Resetear datos demo</button>
   </div>
-  <div style="text-align:center;padding:12px;font-size:10px;color:var(--g5)">Despensa Familiar v5.0</div>
+  <div style="text-align:center;padding:14px;font-size:10px;color:var(--g5)">Pedidos Guzman Cox v5.1</div>
 </div>
 
-<!-- MODALS -->
+<!-- Modals -->
 <div class="mo" id="mProd"><div class="ml"><h2 id="mT">Nuevo Producto</h2><input type="hidden" id="mId">
   <div class="mf"><label>Nombre</label><input id="mNom"></div>
   <div class="mf"><label>Categoria</label><select id="mCat"><option>Lacteos</option><option>Carnes</option><option>Verduras</option><option>Frutas</option><option>Abarrotes</option><option>Limpieza</option><option>Bebidas</option><option>Congelados</option><option>Panaderia</option><option>Pupe</option><option>Otro</option></select></div>
@@ -273,37 +275,31 @@ input,select{-webkit-appearance:none;appearance:none}
 
 <div class="mo" id="mUsr"><div class="ml"><h2>Quien eres?</h2><div id="usrL"></div></div></div>
 
-<!-- Help Modal -->
 <div class="help-modal" id="helpModal">
   <div class="help-content">
     <button class="help-close" id="helpClose">&times;</button>
     <h2>Como hablarle a la app</h2>
-
-    <div class="hsec"><h3 class="h-desp">Actualizar lo que hay</h3>
-      <div class="hex"><b>hay leche</b> — tenemos leche</div>
-      <div class="hex"><b>hay 5 huevos</b> — actualiza a 5</div>
-      <div class="hex"><b>se acabo el arroz</b> — queda en 0</div>
-      <div class="hrule">"hay/tengo/quedan" = actualiza stock. "se acabo" = 0.</div>
+    <div class="hsec"><h3 class="h-desp">Actualizar stock</h3>
+      <div class="hex"><b>hay leche</b></div>
+      <div class="hex"><b>hay 5 huevos</b></div>
+      <div class="hex"><b>se acabo el arroz</b></div>
+      <div class="hrule">"hay" actualiza stock. "se acabo" lo deja en 0.</div>
     </div>
-
     <div class="hsec"><h3 class="h-ped">Pedir algo</h3>
-      <div class="hex"><b>falta pan</b> — crea pedido + producto</div>
-      <div class="hex"><b>pedir yogur</b> — agrega a pedidos</div>
-      <div class="hex"><b>faltan huevos y leche</b> — ambos</div>
-      <div class="hrule">"falta/pedir/comprar" = agrega a pedidos. Si no existe, lo crea en despensa.</div>
+      <div class="hex"><b>falta pan</b></div>
+      <div class="hex"><b>pedir yogur</b></div>
+      <div class="hex"><b>faltan huevos y leche</b></div>
+      <div class="hrule">"falta" y "pedir" agregan a pedidos y despensa.</div>
     </div>
-
-    <div class="hsec"><h3 class="h-new">Agregar producto nuevo</h3>
-      <div class="hex"><b>agregar kefir</b> — nuevo en despensa</div>
-      <div class="hex"><b>agregar cerveza</b> — se categoriza solo</div>
-      <div class="hrule">"agregar" = crea producto nuevo con categoria automatica.</div>
+    <div class="hsec"><h3 class="h-new">Producto nuevo</h3>
+      <div class="hex"><b>agregar kefir</b></div>
+      <div class="hex"><b>agregar garam masala</b></div>
+      <div class="hrule">"agregar" crea producto nuevo con categoria automatica.</div>
     </div>
-
     <div class="hsec"><h3 class="h-combo">Pedidos personales</h3>
       <div class="hex"><b>Pupe quiere helado vegano</b></div>
       <div class="hex"><b>Mama necesita shampoo</b></div>
-      <div class="hex"><b>pedir 12 cervezas</b></div>
-      <div class="hrule">Nombre de familia = pedido personal. La cantidad se actualiza si repites.</div>
+      <div class="hrule">Nombre de familia = pedido personal.</div>
     </div>
   </div>
 </div>
