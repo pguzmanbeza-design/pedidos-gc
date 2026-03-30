@@ -115,13 +115,17 @@ input,select{-webkit-appearance:none;appearance:none}
 .pc.s-empty{border-left-color:var(--em);background:var(--emb);border-color:var(--em);border-width:2px;border-left-width:5px}
 .pc.s-feria{border-left-color:var(--fe)}
 .pc.s-pupe{border-left-color:var(--pu);background:var(--pub);border-color:var(--pu)}
-.pc .pn{font-size:12px;font-weight:700;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc .pn{font-size:11px;font-weight:700;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pc .prow{display:flex;align-items:center;gap:4px}
 .pc .pq{font-size:20px;font-weight:800;line-height:1}
 .pq.q-ok{color:var(--ok)}.pq.q-low{color:var(--lo)}.pq.q-empty{color:var(--em)}
 .pc .pu{font-size:9px;color:var(--g5)}
 .pc .pb{display:flex;gap:3px;margin-left:auto}
 .pbtn{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--g7);background:var(--g1)}
+.pc .pi{position:absolute;top:3px;right:3px;width:14px;height:14px;border-radius:50%;background:var(--ac);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1}
+.pc{position:relative}
+.desc-tip{position:fixed;left:10px;right:10px;bottom:calc(var(--th)+var(--ib)+var(--sb)+14px);background:var(--g9);color:#fff;padding:10px 14px;border-radius:12px;font-size:12px;z-index:150;text-align:center;display:none}
+.desc-tip.show{display:block}
 .pbtn:active{background:var(--g3)}
 
 /* Section headers */
@@ -163,8 +167,8 @@ input,select{-webkit-appearance:none;appearance:none}
 .cbtn.pri{background:var(--ac);color:#fff}.cbtn.dan{background:var(--emb);color:var(--em)}.cbtn.sec{background:var(--g1);color:var(--g7)}
 .cbtn:active{opacity:.8}
 .fchips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
-.fchip{padding:4px 12px;border-radius:14px;font-size:12px;font-weight:600;background:var(--acb);color:var(--ac);display:flex;align-items:center;gap:6px}
-.fchip img{width:22px;height:22px;border-radius:50%;object-fit:contain;object-position:center top;background:var(--g1);border:1px solid var(--g2)}
+.fchip{padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;background:var(--acb);color:var(--ac);display:flex;align-items:center;gap:8px}
+.fchip img{width:36px;height:36px;border-radius:50%;object-fit:contain;object-position:center top;background:var(--g1);border:2px solid var(--g2)}
 .fadd{display:flex;gap:6px}
 .fadd input{flex:1;height:34px;border-radius:8px;background:var(--g1);padding:0 12px;font-size:13px}
 .fadd button{padding:0 14px;border-radius:8px;background:var(--ac);color:#fff;font-size:13px;font-weight:700}
@@ -224,6 +228,7 @@ input,select{-webkit-appearance:none;appearance:none}
 </div>
 <div class="ubar-st" id="uStat"></div>
 <div class="toast" id="toast"></div>
+<div class="desc-tip" id="descTip"></div>
 
 <div class="vw on" id="v-despensa">
   <div class="missing-banner hidden" id="missingBanner"><span class="mb-num" id="missingNum">0</span><span>productos por comprar</span></div>
@@ -263,6 +268,7 @@ input,select{-webkit-appearance:none;appearance:none}
   <div class="mf"><label>Unidad</label><select id="mUni"><option>un</option><option>lt</option><option>kg</option><option>pack</option><option>caja</option></select></div>
   <div class="mf"><label>Cantidad actual</label><input type="number" id="mQty" min="0" value="0"></div>
   <div class="mf"><label>Stock minimo</label><input type="number" id="mMin" min="0" value="1"></div>
+  <div class="mf"><label>Descripcion (opcional)</label><input id="mDesc" placeholder="Ej: marca Colun, sin lactosa..."></div>
   <div class="ma"><button class="bcn" id="mCnc">Cancelar</button><button class="bdl" id="mDel" style="display:none">Eliminar</button><button class="bsv" id="mSav">Guardar</button></div>
 </div></div>
 

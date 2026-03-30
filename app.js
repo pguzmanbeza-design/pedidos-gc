@@ -7,7 +7,17 @@ var AVATARS = {
   Mama:'avatar-mama.png', Papa:'avatar-papa.png',
   Chichi:'avatar-chichi.png', Ester:'avatar-ester.png'
 };
-var SECTIONS = ['Carnes','Lacteos','Abarrotes','Bebidas','Limpieza','Panaderia','Congelados','Frutas y Verduras','Pupe','Otro'];
+var DEFAULT_SECTIONS = ['Carnes','Lacteos','Abarrotes','Bebidas','Limpieza','Panaderia','Congelados','Frutas y Verduras','Pupe','Otro'];
+function getSections() {
+  // Dynamic: include default + any custom categories from products
+  var secs = DEFAULT_SECTIONS.slice();
+  for (var i=0; i<S.productos.length; i++) {
+    var cat = dSec(S.productos[i].categoria);
+    if (secs.indexOf(cat)===-1) secs.splice(secs.length-1, 0, cat); // Insert before "Otro"
+  }
+  return secs;
+}
+var SECTIONS = DEFAULT_SECTIONS;
 
 var S = {
   productos: [], pedidos: [],
@@ -245,18 +255,19 @@ function renderDesp() {
     if (!groups[sec]) groups[sec] = [];
     groups[sec].push(ps[k]);
   }
-  // Sort: empty first, then low, then ok
+  // Sort: empty first, then low, then ok; then alphabetical within same status
   var stOrd = {empty:0, low:1, ok:2};
   for (var g in groups) {
-    groups[g].sort(function(a,b){ return stOrd[st(a)] - stOrd[st(b)]; });
+    groups[g].sort(function(a,b){ var d=stOrd[st(a)]-stOrd[st(b)]; if(d!==0)return d; return a.nombre.localeCompare(b.nombre,'es'); });
   }
 
   var el = document.getElementById('dList');
   if (!ps.length) { el.innerHTML='<div class="es">No hay productos</div>'; return; }
 
   var h = '';
-  for (var si=0; si<SECTIONS.length; si++) {
-    var sec = SECTIONS[si];
+  var activeSections = getSections();
+  for (var si=0; si<activeSections.length; si++) {
+    var sec = activeSections[si];
     if (!groups[sec] || !groups[sec].length) continue;
     var isFV = sec==='Frutas y Verduras';
     var isP = sec==='Pupe';
@@ -268,6 +279,7 @@ function renderDesp() {
       var p = groups[sec][pi];
       var s = st(p);
       h += '<div class="pc s-'+s+(isP?' s-pupe':'')+(isFV?' s-feria':'')+'" data-id="'+p.id+'">';
+      if(p.desc) h += '<span class="pi" data-desc="'+p.desc.replace(/"/g,'&quot;')+'">i</span>';
       h += '<div class="pn">'+p.nombre+'</div>';
       h += '<div class="prow">';
       h += '<span class="pq q-'+s+'">'+p.cantidadActual+'</span>';
@@ -292,6 +304,13 @@ function renderDesp() {
             if (btn.getAttribute('data-a')==='p') S.productos[x].cantidadActual++;
             else if (S.productos[x].cantidadActual>0) S.productos[x].cantidadActual--;
             S.productos[x].upd=now(); S.productos[x].by=S.config.activeUser;
+            // Auto-create pedido when stock reaches 0
+            if (S.productos[x].cantidadActual===0) {
+              var pName=S.productos[x].nombre;
+              var exists=false;
+              for(var ep=0;ep<S.pedidos.length;ep++){if(S.pedidos[ep].estado==='pendiente'&&S.pedidos[ep].texto.toLowerCase()===pName.toLowerCase()){exists=true;break;}}
+              if(!exists){S.pedidos.push({id:nid(S.pedidos),texto:pName,cantidad:S.productos[x].stockMinimo||1,por:S.config.activeUser,com:'Auto: stock en 0',fecha:now(),estado:'pendiente'});showToast(pName+' agregado a pedidos','ok');}
+            }
             break;
           }
         }
@@ -302,6 +321,19 @@ function renderDesp() {
   var cards = el.querySelectorAll('.pc');
   for (var ci=0; ci<cards.length; ci++) {
     (function(card){ card.addEventListener('click', function(){ openProdModal(parseInt(card.getAttribute('data-id'))); }); })(cards[ci]);
+  }
+  // Info icons
+  var infos = el.querySelectorAll('.pi');
+  for (var ii=0; ii<infos.length; ii++) {
+    (function(icon){
+      icon.addEventListener('click', function(e){
+        e.stopPropagation();
+        var tip=document.getElementById('descTip');
+        tip.textContent=icon.getAttribute('data-desc');
+        tip.classList.add('show');
+        setTimeout(function(){tip.classList.remove('show');},3000);
+      });
+    })(infos[ii]);
   }
 }
 document.getElementById('srcI').addEventListener('input', function(){ searchQ=this.value; renderDesp(); });
@@ -422,10 +454,16 @@ function openProdModal(id) {
   document.getElementById('mT').textContent=p?'Editar':'Nuevo Producto';
   document.getElementById('mId').value=p?p.id:'';
   document.getElementById('mNom').value=p?p.nombre:'';
-  document.getElementById('mCat').value=p?p.categoria:'Abarrotes';
+  // Update category dropdown with dynamic categories
+  var catSel=document.getElementById('mCat');
+  var allCats=getSections();
+  catSel.innerHTML='';
+  for(var ci=0;ci<allCats.length;ci++){var o=document.createElement('option');o.value=allCats[ci];o.textContent=allCats[ci];catSel.appendChild(o);}
+  catSel.value=p?p.categoria:'Abarrotes';
   document.getElementById('mUni').value=p?p.unidad:'un';
   document.getElementById('mQty').value=p?p.cantidadActual:0;
   document.getElementById('mMin').value=p?p.stockMinimo:1;
+  document.getElementById('mDesc').value=p&&p.desc?p.desc:'';
   document.getElementById('mDel').style.display=p?'':'none';
   document.getElementById('mProd').classList.add('show');
 }
@@ -440,12 +478,14 @@ document.getElementById('mSav').addEventListener('click',function(){
   var id=document.getElementById('mId').value;
   var nm=document.getElementById('mNom').value.trim();
   if(!nm)return;
+  var descVal=document.getElementById('mDesc').value.trim();
   var d={
     nombre:nm, categoria:document.getElementById('mCat').value,
     unidad:document.getElementById('mUni').value,
     cantidadActual:parseInt(document.getElementById('mQty').value)||0,
     stockMinimo:parseInt(document.getElementById('mMin').value)||1,
     canal:dCan(document.getElementById('mCat').value),
+    desc:descVal||'',
     upd:now(), by:S.config.activeUser
   };
   if(id){
@@ -509,7 +549,13 @@ document.getElementById('addMem').addEventListener('click',function(){var inp=do
 document.getElementById('expB').addEventListener('click',function(){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));a.download='despensa_respaldo.json';a.click();});
 document.getElementById('impB').addEventListener('click',function(){document.getElementById('impF').click();});
 document.getElementById('impF').addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){try{S=JSON.parse(ev.target.result);save();renderAll();updateUserBtn();showToast('Datos importados','ok');}catch(err){showToast('Error al importar','err');}};r.readAsText(f);});
-document.getElementById('rstB').addEventListener('click',function(){if(confirm('Resetear todos los datos?')){seed();save();renderAll();updateUserBtn();}});
+document.getElementById('rstB').addEventListener('click',function(){
+  if(confirm('ATENCION: Esto eliminara TODOS los productos, pedidos y datos de la familia.\n\nEsta accion NO se puede deshacer.\n\nQuieres continuar?')){
+    if(confirm('SEGUNDA CONFIRMACION: Realmente quieres borrar todo y volver a datos de ejemplo?\n\nSe perdera toda la informacion actual.')){
+      seed();save();renderAll();updateUserBtn();showToast('Datos reseteados a demo','err');
+    }
+  }
+});
 
 // === TEST OPENAI ===
 document.getElementById('testApi').addEventListener('click',function(){
@@ -636,6 +682,8 @@ function processCommand(text) {
     '- SIEMPRE asigna la categoria correcta al crear productos o pedidos. Usa tu conocimiento para categorizar.\n' +
     '- Ejemplos: garam masala=Abarrotes, cerveza=Bebidas, confort=Abarrotes, shampoo=Limpieza, kefir=Lacteos\n' +
     '- IMPORTANTE: "eliminar/borrar/quitar" SIEMPRE usa tipo:"eliminar", NUNCA tipo:"actualizar". Son cosas distintas.\n' +
+    '- NOMBRES CORTOS: usa nombres cortos para productos (max 15 caracteres). Ej: "Papel higienico" -> "Papel hig.", "Escobilla dientes" -> "Esc. dientes", "Leche almendra" -> "Leche alm."\n' +
+    '- CATEGORIAS NUEVAS: si el usuario pide crear una categoria (ej: "crear categoria Botanas"), usa esa categoria para los productos que correspondan. Categorias personalizadas son validas.\n' +
     '- NO uses markdown. SOLO JSON puro.';
 
   callOpenAI({
