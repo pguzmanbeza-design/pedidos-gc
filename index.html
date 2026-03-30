@@ -168,7 +168,7 @@ input,select{-webkit-appearance:none;appearance:none}
 .cbtn:active{opacity:.8}
 .fchips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
 .fchip{padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;background:var(--acb);color:var(--ac);display:flex;align-items:center;gap:8px}
-.fchip img{width:36px;height:36px;border-radius:50%;object-fit:contain;object-position:center top;background:var(--g1);border:2px solid var(--g2)}
+.fchip img{width:48px;height:48px;border-radius:50%;object-fit:contain;object-position:center top;background:var(--g1);border:2px solid var(--g2)}
 .fadd{display:flex;gap:6px}
 .fadd input{flex:1;height:34px;border-radius:8px;background:var(--g1);padding:0 12px;font-size:13px}
 .fadd button{padding:0 14px;border-radius:8px;background:var(--ac);color:#fff;font-size:13px;font-weight:700}
@@ -256,9 +256,9 @@ input,select{-webkit-appearance:none;appearance:none}
     <button class="cbtn pri" id="expB">Exportar respaldo</button>
     <button class="cbtn sec" id="impB">Importar respaldo</button>
     <input type="file" id="impF" accept=".json" style="display:none">
-    <button class="cbtn dan" id="rstB">Resetear datos demo</button>
   </div>
-  <div style="text-align:center;padding:14px;font-size:10px;color:var(--g5)">Pedidos Guzman Cox v5.1</div>
+  <div style="text-align:center;padding:14px;font-size:10px;color:var(--g5)">Pedidos Guzman Cox v5.2</div>
+  <div style="text-align:center;padding:0 0 20px"><button id="rstB" style="font-size:10px;color:var(--g5);text-decoration:underline;background:none;border:none;padding:4px">Resetear datos demo</button></div>
 </div>
 
 <!-- Modals -->
@@ -307,6 +307,16 @@ input,select{-webkit-appearance:none;appearance:none}
       <div class="hex"><b>Pupe quiere helado vegano</b></div>
       <div class="hex"><b>Mama necesita shampoo</b></div>
       <div class="hrule">Nombre de familia = pedido personal.</div>
+    </div>
+    <div class="hsec"><h3 class="h-combo" style="background:var(--g7)">Pedido especial</h3>
+      <div class="hex"><b>pedido especial flores</b></div>
+      <div class="hex"><b>pedido especial torta cumple</b></div>
+      <div class="hrule">"pedido especial" agrega SOLO a pedidos, no a despensa.</div>
+    </div>
+    <div class="hsec"><h3 class="h-combo" style="background:var(--em)">Eliminar</h3>
+      <div class="hex"><b>eliminar queso</b></div>
+      <div class="hex"><b>borrar ketchup</b></div>
+      <div class="hrule">"eliminar/borrar" quita producto de la despensa.</div>
     </div>
   </div>
 </div>

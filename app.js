@@ -655,7 +655,7 @@ function processCommand(text) {
     'ACCIONES:\n' +
     '1. {"tipo":"actualizar","producto":"Nombre","cantidad":N} - Cambia stock\n' +
     '2. {"tipo":"crear","nombre":"X","categoria":"Cat","unidad":"un","cantidad":N,"stockMinimo":1} - Producto nuevo\n' +
-    '3. {"tipo":"pedido","texto":"X","solicitadoPor":"Persona","cantidad":N,"comentario":"","categoria":"Cat"} - Pedido de compra\n' +
+    '3. {"tipo":"pedido","texto":"X","solicitadoPor":"Persona","cantidad":N,"comentario":"","categoria":"Cat","soloP":false} - Pedido de compra. soloP:true = solo pedido, no agregar a despensa\n' +
     '4. {"tipo":"eliminar","producto":"X"} - Eliminar producto de la despensa\n\n' +
     'CATEGORIAS (elige la correcta SIEMPRE, NUNCA uses "Otro" si puedes categorizar):\n' +
     '- Lacteos: leche, yogur, queso, mantequilla, crema, manjar, huevos\n' +
@@ -675,6 +675,7 @@ function processCommand(text) {
     '- "falta X" / "faltan X" = PEDIDO + CREAR si no existe (cantidad 0)\n' +
     '- "pedir X" / "comprar X" / "necesito X" / "quiero X" / "traer X" / "conseguir X" = PEDIDO\n' +
     '- "agregar X" / "nuevo producto X" = CREAR producto nuevo con cantidad 1\n' +
+    '- "pedido especial X" / "solo pedido X" / "pedir sin agregar X" = SOLO PEDIDO (no crear en despensa). Usa tipo:"pedido" con campo "soloP":true\n' +
     '- "eliminar X" / "borrar X" / "quitar X" / "sacar X" = tipo ELIMINAR (NO actualizar a 0, sino ELIMINAR completamente con tipo:"eliminar")\n' +
     '- Nombre de persona + quiere/necesita/pide = PEDIDO para esa persona\n' +
     '- Si ya existe pedido pendiente del mismo producto, ACTUALIZA cantidad (no duplicar)\n' +
@@ -730,13 +731,15 @@ function processCommand(text) {
         }
         if (existPed) { existPed.cantidad=pedQty; existPed.por=pedPor; existPed.fecha=now(); msgs.push('Pedido actualizado: '+pedText+' x'+pedQty); }
         else { S.pedidos.push({id:nid(S.pedidos),texto:pedText,cantidad:pedQty,por:pedPor,com:a.comentario||'',fecha:now(),estado:'pendiente'}); msgs.push('Pedido: '+pedText+' x'+pedQty); }
-        // Ensure in despensa with proper category
-        var pedProd = findProduct(pedText);
-        if (!pedProd) {
-          var pedCat = a.categoria||'Otro';
-          S.productos.push({id:nid(S.productos),nombre:cap(pedText),categoria:pedCat,unidad:a.unidad||'un',cantidadActual:0,stockMinimo:pedQty,canal:dCan(pedCat),upd:now(),by:S.config.activeUser});
-        } else if (a.categoria && a.categoria!=='Otro' && pedProd.categoria==='Otro') {
-          pedProd.categoria = a.categoria;
+        // Ensure in despensa (unless soloP=true)
+        if (!a.soloP) {
+          var pedProd = findProduct(pedText);
+          if (!pedProd) {
+            var pedCat = a.categoria||'Otro';
+            S.productos.push({id:nid(S.productos),nombre:cap(pedText),categoria:pedCat,unidad:a.unidad||'un',cantidadActual:0,stockMinimo:pedQty,canal:dCan(pedCat),upd:now(),by:S.config.activeUser});
+          } else if (a.categoria && a.categoria!=='Otro' && pedProd.categoria==='Otro') {
+            pedProd.categoria = a.categoria;
+          }
         }
       }
       else if (a.tipo === 'crear') {
