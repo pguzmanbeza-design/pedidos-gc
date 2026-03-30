@@ -168,7 +168,7 @@ input,select{-webkit-appearance:none;appearance:none}
 .cbtn:active{opacity:.8}
 .fchips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
 .fchip{padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;background:var(--acb);color:var(--ac);display:flex;align-items:center;gap:8px}
-.fchip img{width:48px;height:48px;border-radius:50%;object-fit:contain;object-position:center top;background:var(--g1);border:2px solid var(--g2)}
+.fchip img{width:64px;height:64px;border-radius:50%;object-fit:contain;object-position:center top;background:var(--g1);border:2px solid var(--g2)}
 .fadd{display:flex;gap:6px}
 .fadd input{flex:1;height:34px;border-radius:8px;background:var(--g1);padding:0 12px;font-size:13px}
 .fadd button{padding:0 14px;border-radius:8px;background:var(--ac);color:#fff;font-size:13px;font-weight:700}
@@ -201,6 +201,14 @@ input,select{-webkit-appearance:none;appearance:none}
 .hex b{background:var(--g1);padding:3px 10px;border-radius:8px;font-size:13px;color:var(--g9)}
 .hrule{font-size:11px;color:var(--g5);font-weight:600;margin-top:4px;padding-left:8px;border-left:3px solid var(--g2)}
 
+.cat-item{display:flex;align-items:center;gap:8px;background:var(--wh);padding:8px 10px;border-radius:var(--rs);margin-bottom:4px;box-shadow:var(--sh);font-size:13px;font-weight:600}
+.cat-item .cat-grip{color:var(--g3);font-size:16px;cursor:grab;padding:0 2px}
+.cat-item .cat-name{flex:1;border:none;background:transparent;font:inherit;font-weight:600;color:var(--g9);padding:2px 4px;border-radius:4px}
+.cat-item .cat-name:focus{background:var(--g1);outline:2px solid var(--ac)}
+.cat-item .cat-up,.cat-item .cat-dn{width:24px;height:24px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--g7)}
+.cat-item .cat-up:active,.cat-item .cat-dn:active{background:var(--g3)}
+.cat-item .cat-del{width:24px;height:24px;border-radius:50%;background:var(--emb);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--em)}
+.cat-item.cat-default .cat-del{display:none}
 .es{text-align:center;padding:30px 14px;color:var(--g5);font-size:14px}
 </style>
 </head>
@@ -251,13 +259,18 @@ input,select{-webkit-appearance:none;appearance:none}
   </div>
   <div class="csec"><h3>Familia</h3><div class="fchips" id="famC"></div><div class="fadd"><input id="newMem" placeholder="Nombre..."><button id="addMem">+</button></div></div>
   <div class="csec"><h3>Usuario activo</h3><div class="crow"><label>Quien eres</label><select id="actUser"></select></div></div>
+  <div class="csec"><h3>Categorias</h3>
+    <p style="font-size:11px;color:var(--g5);padding:0 0 6px">Arrastra para reordenar. Toca el nombre para editar.</p>
+    <div id="catList" style="margin-bottom:8px"></div>
+    <div class="fadd"><input id="newCat" placeholder="Nueva categoria..."><button id="addCat">+</button></div>
+  </div>
   <div class="csec"><h3>Datos <span id="lastSaved" style="font-weight:400;text-transform:none;font-size:10px"></span></h3>
     <p style="font-size:11px;color:var(--g5);padding:0 0 8px">Los datos se sincronizan automaticamente con toda la familia.</p>
     <button class="cbtn pri" id="expB">Exportar respaldo</button>
     <button class="cbtn sec" id="impB">Importar respaldo</button>
     <input type="file" id="impF" accept=".json" style="display:none">
   </div>
-  <div style="text-align:center;padding:14px;font-size:10px;color:var(--g5)">Pedidos Guzman Cox v5.2</div>
+  <div style="text-align:center;padding:14px;font-size:10px;color:var(--g5)">Pedidos Guzman Cox v5.3</div>
   <div style="text-align:center;padding:0 0 20px"><button id="rstB" style="font-size:10px;color:var(--g5);text-decoration:underline;background:none;border:none;padding:4px">Resetear datos demo</button></div>
 </div>
 

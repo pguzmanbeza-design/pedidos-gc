@@ -7,22 +7,27 @@ var AVATARS = {
   Mama:'avatar-mama.png', Papa:'avatar-papa.png',
   Chichi:'avatar-chichi.png', Ester:'avatar-ester.png'
 };
+var DEFAULT_FAMILY = ['Papa','Mama','Pablo','Pupe','Chichi','Ester'];
 var DEFAULT_SECTIONS = ['Carnes','Lacteos','Abarrotes','Bebidas','Limpieza','Panaderia','Congelados','Frutas y Verduras','Pupe','Otro'];
 function getSections() {
-  // Dynamic: include default + any custom categories from products
-  var secs = DEFAULT_SECTIONS.slice();
+  var base = S.config.categorias || DEFAULT_SECTIONS.slice();
+  // Ensure any product categories not in the list are included
   for (var i=0; i<S.productos.length; i++) {
     var cat = dSec(S.productos[i].categoria);
-    if (secs.indexOf(cat)===-1) secs.splice(secs.length-1, 0, cat); // Insert before "Otro"
+    if (base.indexOf(cat)===-1) base.splice(base.length-1, 0, cat);
   }
-  return secs;
+  return base;
+}
+function getCatList() {
+  return S.config.categorias || DEFAULT_SECTIONS.slice();
 }
 var SECTIONS = DEFAULT_SECTIONS;
 
 var S = {
   productos: [], pedidos: [],
-  config: { familia:['Papa','Mama','Pablo','Pupe','Chichi','Ester'], proxyUrl:'', activeUser:'Pablo' }
+  config: { familia:['Papa','Mama','Pablo','Pupe','Chichi','Ester'], proxyUrl:'', activeUser:'Pablo', categorias: null }
 };
+// categorias: null means use DEFAULT_SECTIONS. When user customizes, it becomes an array.
 
 // === HELPERS ===
 function av(n) { return AVATARS[n] || ''; }
@@ -414,7 +419,10 @@ function renderConf() {
   var h='';
   for (var i=0; i<S.config.familia.length; i++) {
     var m=S.config.familia[i]; var a=av(m);
-    h+='<span class="fchip">'+(a?'<img src="'+a+'">':'')+m+'<button class="fd" data-n="'+m+'">&times;</button></span>';
+    var isDefault = DEFAULT_FAMILY.indexOf(m) !== -1;
+    h+='<span class="fchip">'+(a?'<img src="'+a+'">':'')+m;
+    if (!isDefault) h+='<button class="fd" data-n="'+m+'">&times;</button>';
+    h+='</span>';
   }
   document.getElementById('famC').innerHTML=h;
   var dels=document.querySelectorAll('.fd');
@@ -434,6 +442,84 @@ function renderConf() {
 
   var lsEl=document.getElementById('lastSaved');
   if(S.lastSaved){var dt=new Date(S.lastSaved);lsEl.textContent='(guardado: '+dt.toLocaleDateString('es-CL')+' '+dt.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+')';}
+
+  renderCatList();
+}
+
+function renderCatList() {
+  var cats = getCatList();
+  var el = document.getElementById('catList');
+  if (!el) return;
+  var h = '';
+  for (var i = 0; i < cats.length; i++) {
+    var c = cats[i];
+    var isDef = DEFAULT_SECTIONS.indexOf(c) !== -1;
+    h += '<div class="cat-item' + (isDef ? ' cat-default' : '') + '" data-idx="' + i + '">';
+    h += '<button class="cat-up" data-dir="up" data-idx="' + i + '">▲</button>';
+    h += '<button class="cat-dn" data-dir="dn" data-idx="' + i + '">▼</button>';
+    h += '<input class="cat-name" value="' + c + '" data-idx="' + i + '" data-orig="' + c + '">';
+    if (!isDef) h += '<button class="cat-del" data-idx="' + i + '">&times;</button>';
+    h += '</div>';
+  }
+  el.innerHTML = h;
+
+  // Move up/down
+  var btns = el.querySelectorAll('.cat-up, .cat-dn');
+  for (var b = 0; b < btns.length; b++) {
+    (function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(btn.getAttribute('data-idx'));
+        var dir = btn.getAttribute('data-dir');
+        var arr = getCatList();
+        if (dir === 'up' && idx > 0) { var tmp = arr[idx]; arr[idx] = arr[idx-1]; arr[idx-1] = tmp; }
+        if (dir === 'dn' && idx < arr.length-1) { var tmp = arr[idx]; arr[idx] = arr[idx+1]; arr[idx+1] = tmp; }
+        S.config.categorias = arr;
+        save(); renderCatList();
+      });
+    })(btns[b]);
+  }
+
+  // Rename on blur
+  var inputs = el.querySelectorAll('.cat-name');
+  for (var n = 0; n < inputs.length; n++) {
+    (function(inp) {
+      inp.addEventListener('blur', function() {
+        var idx = parseInt(inp.getAttribute('data-idx'));
+        var orig = inp.getAttribute('data-orig');
+        var newName = inp.value.trim();
+        if (!newName || newName === orig) { inp.value = orig; return; }
+        var arr = getCatList();
+        arr[idx] = newName;
+        S.config.categorias = arr;
+        // Update all products with old category name
+        for (var p = 0; p < S.productos.length; p++) {
+          if (S.productos[p].categoria === orig) S.productos[p].categoria = newName;
+          if (dSec(S.productos[p].categoria) === orig) S.productos[p].categoria = newName;
+        }
+        save(); renderCatList(); renderDesp();
+      });
+    })(inputs[n]);
+  }
+
+  // Delete custom category
+  var dels = el.querySelectorAll('.cat-del');
+  for (var d = 0; d < dels.length; d++) {
+    (function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(btn.getAttribute('data-idx'));
+        var arr = getCatList();
+        var removed = arr.splice(idx, 1)[0];
+        S.config.categorias = arr;
+        // Move products from deleted category to "Otro"
+        for (var p = 0; p < S.productos.length; p++) {
+          if (S.productos[p].categoria === removed || dSec(S.productos[p].categoria) === removed) {
+            S.productos[p].categoria = 'Otro';
+          }
+        }
+        save(); renderCatList(); renderDesp();
+      });
+    })(dels[d]);
+  }
 }
 
 function badges() {
@@ -546,6 +632,7 @@ for(var mi=0;mi<modals.length;mi++){
 // === CONFIG EVENTS ===
 document.getElementById('proxyUrl').addEventListener('change',function(){S.config.proxyUrl=this.value.trim();save();renderConf();});
 document.getElementById('addMem').addEventListener('click',function(){var inp=document.getElementById('newMem');var n=inp.value.trim();if(n&&S.config.familia.indexOf(n)<0){S.config.familia.push(n);inp.value='';save();renderConf();}});
+document.getElementById('addCat').addEventListener('click',function(){var inp=document.getElementById('newCat');var n=inp.value.trim();if(!n)return;var arr=getCatList();if(arr.indexOf(n)>=0){showToast('Categoria ya existe','err');return;}arr.splice(arr.length-1,0,n);S.config.categorias=arr;inp.value='';save();renderCatList();renderDesp();showToast('Categoria "'+n+'" creada','ok');});
 document.getElementById('expB').addEventListener('click',function(){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));a.download='despensa_respaldo.json';a.click();});
 document.getElementById('impB').addEventListener('click',function(){document.getElementById('impF').click();});
 document.getElementById('impF').addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){try{S=JSON.parse(ev.target.result);save();renderAll();updateUserBtn();showToast('Datos importados','ok');}catch(err){showToast('Error al importar','err');}};r.readAsText(f);});
@@ -657,17 +744,20 @@ function processCommand(text) {
     '2. {"tipo":"crear","nombre":"X","categoria":"Cat","unidad":"un","cantidad":N,"stockMinimo":1} - Producto nuevo\n' +
     '3. {"tipo":"pedido","texto":"X","solicitadoPor":"Persona","cantidad":N,"comentario":"","categoria":"Cat","soloP":false} - Pedido de compra. soloP:true = solo pedido, no agregar a despensa\n' +
     '4. {"tipo":"eliminar","producto":"X"} - Eliminar producto de la despensa\n\n' +
-    'CATEGORIAS (elige la correcta SIEMPRE, NUNCA uses "Otro" si puedes categorizar):\n' +
+    'CATEGORIAS DISPONIBLES (usa EXACTAMENTE estos nombres, elige la correcta SIEMPRE, NUNCA uses "Otro" si puedes categorizar):\n' +
+    getCatList().join(', ') + '\n' +
+    'Ejemplos de productos por categoria:\n' +
     '- Lacteos: leche, yogur, queso, mantequilla, crema, manjar, huevos\n' +
     '- Carnes: pollo, carne, cerdo, salmon, pescado, jamon, vienesas, tocino, chorizo\n' +
     '- Verduras: tomate, lechuga, cebolla, zanahoria, pepino, pimenton, apio, brocoli, espinaca, zapallo, choclo, papa\n' +
     '- Frutas: manzana, platano, palta, naranja, limon, uva, frutilla, kiwi, durazno, sandia\n' +
-    '- Abarrotes: arroz, pasta, fideos, aceite, atun, lentejas, harina, azucar, sal, pimienta, comino, oregano, garam masala, curry, mostaza, ketchup, mayo, mayonesa, salsa soya, salsa, vinagre, mermelada, miel, cafe, te, cacao, chocolate, cereal, avena, granola, confort, papel higienico, servilletas, especias, condimentos\n' +
-    '- Limpieza: detergente, jabon, cloro, esponja, bolsas basura, desinfectante, shampoo, pasta dientes, escobilla, lavaloza, suavizante, limpiador\n' +
+    '- Abarrotes: arroz, pasta, fideos, aceite, atun, lentejas, harina, azucar, sal, pimienta, comino, oregano, garam masala, curry, mostaza, ketchup, mayo, mayonesa, salsa soya, salsa, vinagre, mermelada, miel, cafe, te, cacao, chocolate, cereal, avena, granola, especias, condimentos\n' +
+    '- Limpieza: detergente, jabon, cloro, esponja, bolsas basura, desinfectante, shampoo, pasta dientes, escobilla, lavaloza, suavizante, limpiador, confort, papel higienico, servilletas\n' +
     '- Bebidas: agua, jugo, cerveza, vino, coca cola, bebida, gaseosa, sprite, fanta\n' +
     '- Congelados: helado, pizza congelada, papas fritas congeladas, nuggets\n' +
     '- Panaderia: pan, pan molde, galletas, queque, torta, bizcocho\n' +
     '- Pupe: leche almendra, yogur vegano, queso vegano, todo lo sin lactosa o vegano para Pupe\n' +
+    '- Si la familia creo categorias personalizadas, USA ESAS categorias cuando el producto encaje.\n' +
     '- Otro: SOLO si realmente no encaja en NINGUNA categoria. Piensa bien antes de usar "Otro".\n\n' +
     'REGLAS DE INTERPRETACION:\n' +
     '- "hay X" / "tengo X" / "quedan X" = ACTUALIZAR stock\n' +
