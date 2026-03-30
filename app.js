@@ -597,12 +597,13 @@ function processCommand(text) {
     '- "falta X" / "faltan X" = PEDIDO + CREAR si no existe (cantidad 0)\n' +
     '- "pedir X" / "comprar X" / "necesito X" / "quiero X" / "traer X" / "conseguir X" = PEDIDO\n' +
     '- "agregar X" / "nuevo producto X" = CREAR producto nuevo con cantidad 1\n' +
-    '- "eliminar X" / "borrar X" / "quitar X" / "sacar X de la despensa" = ELIMINAR producto\n' +
+    '- "eliminar X" / "borrar X" / "quitar X" / "sacar X" = tipo ELIMINAR (NO actualizar a 0, sino ELIMINAR completamente con tipo:"eliminar")\n' +
     '- Nombre de persona + quiere/necesita/pide = PEDIDO para esa persona\n' +
     '- Si ya existe pedido pendiente del mismo producto, ACTUALIZA cantidad (no duplicar)\n' +
     '- Si "falta" un producto que YA EXISTE en despensa, pon stock en 0 Y crea pedido\n' +
     '- SIEMPRE asigna la categoria correcta al crear productos o pedidos. Usa tu conocimiento para categorizar.\n' +
     '- Ejemplos: garam masala=Abarrotes, cerveza=Bebidas, confort=Abarrotes, shampoo=Limpieza, kefir=Lacteos\n' +
+    '- IMPORTANTE: "eliminar/borrar/quitar" SIEMPRE usa tipo:"eliminar", NUNCA tipo:"actualizar". Son cosas distintas.\n' +
     '- NO uses markdown. SOLO JSON puro.';
 
   callOpenAI({
