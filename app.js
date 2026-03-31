@@ -401,8 +401,22 @@ function renderPed() {
   var el = document.getElementById('pList');
   if (!pds.length) { el.innerHTML='<div class="es">No hay pedidos</div>'; return; }
 
-  // Sort: pending first, then comprado
-  pds.sort(function(a,b){ return (a.estado==='comprado'?1:0) - (b.estado==='comprado'?1:0); });
+  // Sort: pending first, then by category order, then alphabetical
+  var catOrder = getSections();
+  function pedCatIdx(ped) {
+    // Find matching product to get category
+    var prod = findProduct(ped.texto);
+    var cat = prod ? dSec(prod.categoria) : (ped.categoria ? dSec(ped.categoria) : 'Otro');
+    var idx = catOrder.indexOf(cat);
+    return idx >= 0 ? idx : 999;
+  }
+  pds.sort(function(a,b){
+    var sa = a.estado==='comprado'?1:0, sb = b.estado==='comprado'?1:0;
+    if (sa !== sb) return sa - sb;
+    var ca = pedCatIdx(a), cb = pedCatIdx(b);
+    if (ca !== cb) return ca - cb;
+    return a.texto.localeCompare(b.texto);
+  });
 
   var h = '';
   for (var m=0; m<pds.length; m++) {
@@ -480,13 +494,14 @@ function renderCatList() {
   var h = '';
   for (var i = 0; i < cats.length; i++) {
     var c = cats[i];
-    var isDef = DEFAULT_SECTIONS.indexOf(c) !== -1;
-    h += '<div class="cat-item' + (isDef ? ' cat-default' : '') + '" data-idx="' + i + '">';
+    var isOtro = c === 'Otro';
+    h += '<div class="cat-item" data-idx="' + i + '">';
     var emoji = catEmoji(c);
     h += '<button class="cat-up" data-dir="up" data-idx="' + i + '">▲</button>';
     h += '<button class="cat-dn" data-dir="dn" data-idx="' + i + '">▼</button>';
     h += '<span style="font-size:18px">' + emoji + '</span>';
     h += '<input class="cat-name" value="' + c + '" data-idx="' + i + '" data-orig="' + c + '">';
+    if (!isOtro) h += '<button class="cat-del" data-idx="' + i + '" data-cat="' + c + '">&times;</button>';
     h += '</div>';
   }
   el.innerHTML = h;
@@ -527,6 +542,31 @@ function renderCatList() {
         save(); renderCatList(); renderDesp();
       });
     })(inputs[n]);
+  }
+
+  // Delete category - reassign products to closest match or "Otro"
+  var dels = el.querySelectorAll('.cat-del');
+  for (var d = 0; d < dels.length; d++) {
+    (function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(btn.getAttribute('data-idx'));
+        var catName = btn.getAttribute('data-cat');
+        if (!confirm('Eliminar categoria "' + catName + '"?\nLos productos se moveran a otra categoria.')) return;
+        var arr = getCatList();
+        arr.splice(idx, 1);
+        S.config.categorias = arr;
+        // Reassign products: try to find best match via simple heuristic
+        var remaining = arr.filter(function(c) { return c !== 'Otro'; });
+        for (var p = 0; p < S.productos.length; p++) {
+          var prod = S.productos[p];
+          if (prod.categoria === catName || dSec(prod.categoria) === catName) {
+            prod.categoria = 'Otro'; // default fallback
+          }
+        }
+        save(); renderCatList(); renderDesp();
+        showToast('Categoria eliminada. Productos movidos a Otro.', 'ok');
+      });
+    })(dels[d]);
   }
 
 }
