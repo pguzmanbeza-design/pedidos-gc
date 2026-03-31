@@ -1,6 +1,12 @@
 // ==========================================
-// DESPENSA FAMILIAR v5.0
+// DESPENSA FAMILIAR v6.0
 // ==========================================
+
+var CAT_EMOJI = {
+  'Carnes':'\u{1F969}','Lacteos':'\u{1F9C0}','Abarrotes':'\u{1F9FA}','Bebidas':'\u{1F377}',
+  'Limpieza':'\u{1F9F9}','Panaderia':'\u{1F35E}','Congelados':'\u2744\uFE0F',
+  'Frutas y Verduras':'\u{1F34E}','Vegano':'\u{1F33F}','Otro':'\u{1F4E6}'
+};
 
 var AVATARS = {
   Pablo:'avatar-pablo.png', Pupe:'avatar-pupe.png',
@@ -8,7 +14,7 @@ var AVATARS = {
   Chichi:'avatar-chichi.png', Ester:'avatar-ester.png'
 };
 var DEFAULT_FAMILY = ['Papa','Mama','Pablo','Pupe','Chichi','Ester'];
-var DEFAULT_SECTIONS = ['Carnes','Lacteos','Abarrotes','Bebidas','Limpieza','Panaderia','Congelados','Frutas y Verduras','Pupe','Otro'];
+var DEFAULT_SECTIONS = ['Carnes','Lacteos','Abarrotes','Bebidas','Limpieza','Panaderia','Congelados','Frutas y Verduras','Vegano','Otro'];
 function getSections() {
   var base = S.config.categorias || DEFAULT_SECTIONS.slice();
   // Ensure any product categories not in the list are included
@@ -32,7 +38,7 @@ var S = {
 // === HELPERS ===
 function av(n) { return AVATARS[n] || ''; }
 function dSec(c) { return (c==='Verduras'||c==='Frutas') ? 'Frutas y Verduras' : c; }
-function st(p) { return p.cantidadActual<=0?'empty':p.cantidadActual<p.stockMinimo?'low':'ok'; }
+function st(p) { return p.cantidadActual<=0?'empty':'ok'; }
 function nid(a) { var m=0; for(var i=0;i<a.length;i++) if(a[i].id>m) m=a[i].id; return m+1; }
 function dCan(c) { return (c==='Verduras'||c==='Frutas')?'feria':'uber_eats'; }
 function now() { return new Date().toISOString(); }
@@ -127,10 +133,6 @@ function findProduct(name) {
   for (var i=0; i<S.productos.length; i++) {
     if (S.productos[i].nombre.toLowerCase() === q) return S.productos[i];
   }
-  for (var j=0; j<S.productos.length; j++) {
-    var pn = S.productos[j].nombre.toLowerCase();
-    if (pn.indexOf(q)>=0 || q.indexOf(pn)>=0) return S.productos[j];
-  }
   return null;
 }
 
@@ -193,9 +195,9 @@ function seed() {
     {id:25,nombre:'Jugo',categoria:'Bebidas',unidad:'lt',cantidadActual:2,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
     {id:26,nombre:'Pan molde',categoria:'Panaderia',unidad:'un',cantidadActual:1,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
     {id:27,nombre:'Helado',categoria:'Congelados',unidad:'un',cantidadActual:0,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:28,nombre:'Leche alm.',categoria:'Pupe',unidad:'lt',cantidadActual:1,stockMinimo:2,canal:'uber_eats',upd:n,by:'Pupe'},
-    {id:29,nombre:'Yogur veg.',categoria:'Pupe',unidad:'un',cantidadActual:0,stockMinimo:2,canal:'uber_eats',upd:n,by:'Pupe'},
-    {id:30,nombre:'Granola',categoria:'Pupe',unidad:'un',cantidadActual:1,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pupe'}
+    {id:28,nombre:'Leche alm.',categoria:'Vegano',unidad:'lt',cantidadActual:1,stockMinimo:2,canal:'uber_eats',upd:n,by:'Pupe'},
+    {id:29,nombre:'Yogur veg.',categoria:'Vegano',unidad:'un',cantidadActual:0,stockMinimo:2,canal:'uber_eats',upd:n,by:'Pupe'},
+    {id:30,nombre:'Granola',categoria:'Vegano',unidad:'un',cantidadActual:1,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pupe'}
   ];
   S.pedidos = [
     {id:1,texto:'Yogur griego',cantidad:2,por:'Mama',com:'Colun',fecha:n,estado:'pendiente'},
@@ -261,7 +263,7 @@ function renderDesp() {
     groups[sec].push(ps[k]);
   }
   // Sort: empty first, then low, then ok; then alphabetical within same status
-  var stOrd = {empty:0, low:1, ok:2};
+  var stOrd = {empty:0, ok:1};
   for (var g in groups) {
     groups[g].sort(function(a,b){ var d=stOrd[st(a)]-stOrd[st(b)]; if(d!==0)return d; return a.nombre.localeCompare(b.nombre,'es'); });
   }
@@ -275,15 +277,15 @@ function renderDesp() {
     var sec = activeSections[si];
     if (!groups[sec] || !groups[sec].length) continue;
     var isFV = sec==='Frutas y Verduras';
-    var isP = sec==='Pupe';
-    h += '<div class="shdr '+(isFV?'sh-fv':'')+(isP?'sh-pu':'')+'">';
-    h += '<span class="sd" style="background:'+(isFV?'var(--fe)':isP?'var(--pu)':'var(--g3)')+'"></span>';
-    h += sec+'</div>';
+    var emoji = CAT_EMOJI[sec] || '\u{1F4E6}';
+    h += '<div class="shdr '+(isFV?'sh-fv':'')+'" data-sec="'+sec+'">';
+    h += '<span class="sd" style="background:'+(isFV?'var(--fe)':'var(--g3)')+'"></span>';
+    h += emoji+' '+sec+'<span class="collapse-arrow">\u25BC</span></div>';
 
     for (var pi=0; pi<groups[sec].length; pi++) {
       var p = groups[sec][pi];
       var s = st(p);
-      h += '<div class="pc s-'+s+(isP?' s-pupe':'')+(isFV?' s-feria':'')+'" data-id="'+p.id+'">';
+      h += '<div class="pc s-'+s+(isFV?' s-feria':'')+'" data-id="'+p.id+'" data-sec="'+sec+'">';
       if(p.desc) h += '<span class="pi" data-desc="'+p.desc.replace(/"/g,'&quot;')+'">i</span>';
       h += '<div class="pn">'+p.nombre+'</div>';
       h += '<div class="prow">';
@@ -340,56 +342,64 @@ function renderDesp() {
       });
     })(infos[ii]);
   }
+  // Collapsible section headers
+  var hdrs = el.querySelectorAll('.shdr');
+  for (var hi=0; hi<hdrs.length; hi++) {
+    (function(hdr){
+      hdr.addEventListener('click', function(){
+        hdr.classList.toggle('collapsed');
+        var secName = hdr.getAttribute('data-sec');
+        var cards = el.querySelectorAll('.pc[data-sec="'+secName+'"]');
+        for (var ci=0; ci<cards.length; ci++) {
+          cards[ci].style.display = hdr.classList.contains('collapsed') ? 'none' : '';
+        }
+      });
+    })(hdrs[hi]);
+  }
 }
-document.getElementById('srcI').addEventListener('input', function(){ searchQ=this.value; renderDesp(); });
 
 // === RENDER PEDIDOS ===
-var pedFilter = 'Todos';
+var pedSubTab = 'despensa';
+function isFVCategory(texto) {
+  // Check if a pedido's text matches a product in the Frutas y Verduras category
+  for (var i=0; i<S.productos.length; i++) {
+    if (S.productos[i].nombre.toLowerCase() === texto.toLowerCase()) {
+      return dSec(S.productos[i].categoria) === 'Frutas y Verduras';
+    }
+  }
+  return false;
+}
 function renderPed() {
-  var personas = ['Todos'].concat(S.config.familia);
-  var chH = '';
-  for (var i=0; i<personas.length; i++) {
-    chH += '<button class="ch '+(personas[i]===pedFilter?'on':'')+'" data-p="'+personas[i]+'">'+personas[i]+'</button>';
-  }
-  document.getElementById('pChs').innerHTML = chH;
-  var chs = document.querySelectorAll('#pChs .ch');
-  for (var ci=0; ci<chs.length; ci++) {
-    (function(ch){ ch.addEventListener('click', function(){ pedFilter=ch.getAttribute('data-p'); renderPed(); }); })(chs[ci]);
-  }
+  // Update sub-tab active states
+  var ptabs = document.querySelectorAll('.ped-tab');
+  for (var ti=0; ti<ptabs.length; ti++) ptabs[ti].classList.toggle('on', ptabs[ti].getAttribute('data-pt')===pedSubTab);
 
   var pds = [];
   for (var j=0; j<S.pedidos.length; j++) {
-    if (pedFilter==='Todos' || S.pedidos[j].por===pedFilter) pds.push(S.pedidos[j]);
+    var isFV = isFVCategory(S.pedidos[j].texto);
+    if (pedSubTab==='fv' && isFV) pds.push(S.pedidos[j]);
+    else if (pedSubTab==='despensa' && !isFV) pds.push(S.pedidos[j]);
   }
 
   var el = document.getElementById('pList');
   if (!pds.length) { el.innerHTML='<div class="es">No hay pedidos</div>'; return; }
 
-  // Group by person
-  var grps = {};
-  for (var k=0; k<pds.length; k++) {
-    if (!grps[pds[k].por]) grps[pds[k].por]=[];
-    grps[pds[k].por].push(pds[k]);
-  }
+  // Sort: pending first, then comprado
+  pds.sort(function(a,b){ return (a.estado==='comprado'?1:0) - (b.estado==='comprado'?1:0); });
 
   var h = '';
-  for (var per in grps) {
-    var items = grps[per];
-    items.sort(function(a,b){ return (a.estado==='comprado'?1:0) - (b.estado==='comprado'?1:0); });
-    var a = av(per);
-    h += '<div class="pgrp"><div class="pgt">'+(a?'<img src="'+a+'">':'')+per+'</div>';
-    for (var m=0; m<items.length; m++) {
-      var p = items[m];
-      var dn = p.estado==='comprado';
-      h += '<div class="pdc '+(dn?'done':'')+'">';
-      h += '<button class="pck '+(dn?'ckd':'')+'" data-id="'+p.id+'">';
-      if (dn) h += '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
-      h += '</button>';
-      h += '<div style="flex:1;min-width:0"><div class="pdt">'+p.texto+(p.cantidad>1?' x'+p.cantidad:'')+'</div>';
-      h += '<div class="pdm">'+(p.com||'')+'</div></div>';
-      h += '<button class="pdx" data-d="'+p.id+'">&times;</button></div>';
-    }
+  for (var m=0; m<pds.length; m++) {
+    var p = pds[m];
+    var dn = p.estado==='comprado';
+    h += '<div class="pdc '+(dn?'done':'')+'">';
+    h += '<button class="pck '+(dn?'ckd':'')+'" data-id="'+p.id+'">';
+    if (dn) h += '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+    h += '</button>';
+    h += '<div style="flex:1;min-width:0"><div class="pdt">'+p.texto+(p.cantidad>1?' x'+p.cantidad:'');
+    h += ' <span class="ped-who">\u2014 '+p.por+'</span>';
     h += '</div>';
+    h += '<div class="pdm">'+(p.com||'')+'</div></div>';
+    h += '<button class="pdx" data-d="'+p.id+'">&times;</button></div>';
   }
   el.innerHTML = h;
 
@@ -455,10 +465,11 @@ function renderCatList() {
     var c = cats[i];
     var isDef = DEFAULT_SECTIONS.indexOf(c) !== -1;
     h += '<div class="cat-item' + (isDef ? ' cat-default' : '') + '" data-idx="' + i + '">';
+    var emoji = CAT_EMOJI[c] || '\u{1F4E6}';
     h += '<button class="cat-up" data-dir="up" data-idx="' + i + '">▲</button>';
     h += '<button class="cat-dn" data-dir="dn" data-idx="' + i + '">▼</button>';
+    h += '<span style="font-size:18px">' + emoji + '</span>';
     h += '<input class="cat-name" value="' + c + '" data-idx="' + i + '" data-orig="' + c + '">';
-    if (!isDef) h += '<button class="cat-del" data-idx="' + i + '">&times;</button>';
     h += '</div>';
   }
   el.innerHTML = h;
@@ -501,25 +512,6 @@ function renderCatList() {
     })(inputs[n]);
   }
 
-  // Delete custom category
-  var dels = el.querySelectorAll('.cat-del');
-  for (var d = 0; d < dels.length; d++) {
-    (function(btn) {
-      btn.addEventListener('click', function() {
-        var idx = parseInt(btn.getAttribute('data-idx'));
-        var arr = getCatList();
-        var removed = arr.splice(idx, 1)[0];
-        S.config.categorias = arr;
-        // Move products from deleted category to "Otro"
-        for (var p = 0; p < S.productos.length; p++) {
-          if (S.productos[p].categoria === removed || dSec(S.productos[p].categoria) === removed) {
-            S.productos[p].categoria = 'Otro';
-          }
-        }
-        save(); renderCatList(); renderDesp();
-      });
-    })(dels[d]);
-  }
 }
 
 function badges() {
@@ -548,7 +540,6 @@ function openProdModal(id) {
   catSel.value=p?p.categoria:'Abarrotes';
   document.getElementById('mUni').value=p?p.unidad:'un';
   document.getElementById('mQty').value=p?p.cantidadActual:0;
-  document.getElementById('mMin').value=p?p.stockMinimo:1;
   document.getElementById('mDesc').value=p&&p.desc?p.desc:'';
   document.getElementById('mDel').style.display=p?'':'none';
   document.getElementById('mProd').classList.add('show');
@@ -569,7 +560,6 @@ document.getElementById('mSav').addEventListener('click',function(){
     nombre:nm, categoria:document.getElementById('mCat').value,
     unidad:document.getElementById('mUni').value,
     cantidadActual:parseInt(document.getElementById('mQty').value)||0,
-    stockMinimo:parseInt(document.getElementById('mMin').value)||1,
     canal:dCan(document.getElementById('mCat').value),
     desc:descVal||'',
     upd:now(), by:S.config.activeUser
@@ -723,7 +713,7 @@ function processCommand(text) {
   var inv = '';
   for (var i=0; i<S.productos.length; i++) {
     var p = S.productos[i];
-    inv += p.nombre+':'+p.cantidadActual+p.unidad+'(min'+p.stockMinimo+'); ';
+    inv += p.nombre+':'+p.cantidadActual+p.unidad+'; ';
   }
 
   var pedidos = '';
@@ -756,7 +746,7 @@ function processCommand(text) {
     '- Bebidas: agua, jugo, cerveza, vino, coca cola, bebida, gaseosa, sprite, fanta\n' +
     '- Congelados: helado, pizza congelada, papas fritas congeladas, nuggets\n' +
     '- Panaderia: pan, pan molde, galletas, queque, torta, bizcocho\n' +
-    '- Pupe: leche almendra, yogur vegano, queso vegano, todo lo sin lactosa o vegano para Pupe\n' +
+    '- Vegano: leche almendra, yogur vegano, queso vegano, todo lo vegano o sin lactosa\n' +
     '- Si la familia creo categorias personalizadas, USA ESAS categorias cuando el producto encaje.\n' +
     '- Otro: SOLO si realmente no encaja en NINGUNA categoria. Piensa bien antes de usar "Otro".\n\n' +
     'REGLAS DE INTERPRETACION:\n' +

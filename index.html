@@ -19,9 +19,9 @@
 :root{
   --bg:#F5F4F0;--wh:#fff;--g1:#f0f0ec;--g2:#e0dfdb;--g3:#c8c7c3;
   --g5:#8a8985;--g7:#4a4945;--g9:#1a1a18;
-  --ok:#1A7A4A;--okb:#e8f5ee;--lo:#D46000;--lob:#fef3e8;
+  --ok:#1A7A4A;--okb:#e8f5ee;--lo:#D46000;
   --em:#C8002E;--emb:#fce8ed;--ac:#2563EB;--acb:#eff6ff;
-  --ub:#06C167;--fe:#2D8B4E;--pu:#7C5CBF;--pub:#f0ebfa;
+  --ub:#06C167;--fe:#2D8B4E;--pu:#7C5CBF;
   --rs:10px;--sh:0 1px 4px rgba(0,0,0,.06);
   --th:56px;--hh:68px;--ib:56px;
   --sb:env(safe-area-inset-bottom,0px);
@@ -111,14 +111,12 @@ input,select{-webkit-appearance:none;appearance:none}
 @media(min-width:430px){.pgrid{grid-template-columns:repeat(4,1fr)}}
 
 .pc{background:var(--wh);border-radius:var(--rs);padding:6px 8px;display:flex;flex-direction:column;gap:2px;border-left:4px solid var(--ok);border:1px solid var(--g2);border-left-width:4px}
-.pc.s-low{border-left-color:var(--lo);background:var(--lob);border-color:var(--lo)}
 .pc.s-empty{border-left-color:var(--em);background:var(--emb);border-color:var(--em);border-width:2px;border-left-width:5px}
 .pc.s-feria{border-left-color:var(--fe)}
-.pc.s-pupe{border-left-color:var(--pu);background:var(--pub);border-color:var(--pu)}
 .pc .pn{font-size:11px;font-weight:700;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pc .prow{display:flex;align-items:center;gap:4px}
 .pc .pq{font-size:20px;font-weight:800;line-height:1}
-.pq.q-ok{color:var(--ok)}.pq.q-low{color:var(--lo)}.pq.q-empty{color:var(--em)}
+.pq.q-ok{color:var(--ok)}.pq.q-empty{color:var(--em)}
 .pc .pu{font-size:9px;color:var(--g5)}
 .pc .pb{display:flex;gap:3px;margin-left:auto}
 .pbtn{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--g7);background:var(--g1)}
@@ -132,7 +130,6 @@ input,select{-webkit-appearance:none;appearance:none}
 .shdr{grid-column:1/-1;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--g5);padding:10px 2px 3px;display:flex;align-items:center;gap:6px}
 .shdr .sd{width:8px;height:8px;border-radius:50%}
 .shdr.sh-fv{color:var(--fe)}.shdr.sh-fv .sd{background:var(--fe)}
-.shdr.sh-pu{color:var(--pu)}.shdr.sh-pu .sd{background:var(--pu)}
 
 /* FAB */
 .fab{position:fixed;bottom:calc(var(--th)+var(--ib)+var(--sb)+12px);right:14px;width:48px;height:48px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 4px 16px rgba(37,99,235,.4);z-index:90}
@@ -201,14 +198,30 @@ input,select{-webkit-appearance:none;appearance:none}
 .hex b{background:var(--g1);padding:3px 10px;border-radius:8px;font-size:13px;color:var(--g9)}
 .hrule{font-size:11px;color:var(--g5);font-weight:600;margin-top:4px;padding-left:8px;border-left:3px solid var(--g2)}
 
+/* Sub-tabs in Pedidos */
+.ped-tabs{display:flex;gap:6px;margin-bottom:10px}
+.ped-tab{flex:1;padding:10px 8px;border-radius:12px;font-size:14px;font-weight:700;text-align:center;background:var(--g1);color:var(--g5);border:2px solid var(--g2);transition:all .2s}
+.ped-tab.on{background:var(--acb);color:var(--ac);border-color:var(--ac)}
+.ped-tab .ped-tab-emoji{font-size:22px;display:block;margin-bottom:2px}
+
+/* Clear button in search */
+.swp .clear-btn{position:absolute;right:36px;top:50%;transform:translateY(-50%);width:20px;height:20px;border-radius:50%;background:var(--g3);color:var(--wh);font-size:12px;font-weight:700;display:none;align-items:center;justify-content:center;line-height:1;cursor:pointer;z-index:1}
+.swp .clear-btn.show{display:flex}
+
+/* Collapsible categories */
+.shdr{cursor:pointer;user-select:none;-webkit-user-select:none}
+.shdr .collapse-arrow{font-size:10px;transition:transform .2s;margin-left:auto}
+.shdr.collapsed .collapse-arrow{transform:rotate(-90deg)}
+
+/* Pedido requester inline */
+.pdt .ped-who{font-size:11px;color:var(--g5);font-weight:400}
+
 .cat-item{display:flex;align-items:center;gap:8px;background:var(--wh);padding:8px 10px;border-radius:var(--rs);margin-bottom:4px;box-shadow:var(--sh);font-size:13px;font-weight:600}
 .cat-item .cat-grip{color:var(--g3);font-size:16px;cursor:grab;padding:0 2px}
 .cat-item .cat-name{flex:1;border:none;background:transparent;font:inherit;font-weight:600;color:var(--g9);padding:2px 4px;border-radius:4px}
 .cat-item .cat-name:focus{background:var(--g1);outline:2px solid var(--ac)}
 .cat-item .cat-up,.cat-item .cat-dn{width:24px;height:24px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--g7)}
 .cat-item .cat-up:active,.cat-item .cat-dn:active{background:var(--g3)}
-.cat-item .cat-del{width:24px;height:24px;border-radius:50%;background:var(--emb);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--em)}
-.cat-item.cat-default .cat-del{display:none}
 .es{text-align:center;padding:30px 14px;color:var(--g5);font-size:14px}
 </style>
 </head>
@@ -240,13 +253,16 @@ input,select{-webkit-appearance:none;appearance:none}
 
 <div class="vw on" id="v-despensa">
   <div class="missing-banner hidden" id="missingBanner"><span class="mb-num" id="missingNum">0</span><span>productos por comprar</span></div>
-  <div class="swp"><input id="srcI" placeholder="Buscar..."><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></div>
+  <div class="swp"><input id="srcI" placeholder="Buscar..."><button class="clear-btn" id="srcClear">&times;</button><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></div>
   <div class="pgrid" id="dList"></div>
   <button class="fab" id="addP">+</button>
 </div>
 
 <div class="vw" id="v-pedidos">
-  <div class="chs" id="pChs"></div>
+  <div class="ped-tabs">
+    <button class="ped-tab on" data-pt="despensa"><span class="ped-tab-emoji">&#x1F9FA;</span>Despensa</button>
+    <button class="ped-tab" data-pt="fv"><span class="ped-tab-emoji">&#x1F34E;</span>Frutas y Verduras</button>
+  </div>
   <div id="pList"></div>
   <button class="fab" id="addPed">+</button>
 </div>
@@ -270,17 +286,16 @@ input,select{-webkit-appearance:none;appearance:none}
     <button class="cbtn sec" id="impB">Importar respaldo</button>
     <input type="file" id="impF" accept=".json" style="display:none">
   </div>
-  <div style="text-align:center;padding:14px;font-size:10px;color:var(--g5)">Pedidos Guzman Cox v5.3</div>
+  <div style="text-align:center;padding:14px;font-size:10px;color:var(--g5)">Pedidos Guzman Cox v6.0</div>
   <div style="text-align:center;padding:0 0 20px"><button id="rstB" style="font-size:10px;color:var(--g5);text-decoration:underline;background:none;border:none;padding:4px">Resetear datos demo</button></div>
 </div>
 
 <!-- Modals -->
 <div class="mo" id="mProd"><div class="ml"><h2 id="mT">Nuevo Producto</h2><input type="hidden" id="mId">
   <div class="mf"><label>Nombre</label><input id="mNom"></div>
-  <div class="mf"><label>Categoria</label><select id="mCat"><option>Lacteos</option><option>Carnes</option><option>Verduras</option><option>Frutas</option><option>Abarrotes</option><option>Limpieza</option><option>Bebidas</option><option>Congelados</option><option>Panaderia</option><option>Pupe</option><option>Otro</option></select></div>
+  <div class="mf"><label>Categoria</label><select id="mCat"><option>Lacteos</option><option>Carnes</option><option>Verduras</option><option>Frutas</option><option>Abarrotes</option><option>Limpieza</option><option>Bebidas</option><option>Congelados</option><option>Panaderia</option><option>Vegano</option><option>Otro</option></select></div>
   <div class="mf"><label>Unidad</label><select id="mUni"><option>un</option><option>lt</option><option>kg</option><option>pack</option><option>caja</option></select></div>
   <div class="mf"><label>Cantidad actual</label><input type="number" id="mQty" min="0" value="0"></div>
-  <div class="mf"><label>Stock minimo</label><input type="number" id="mMin" min="0" value="1"></div>
   <div class="mf"><label>Descripcion (opcional)</label><input id="mDesc" placeholder="Ej: marca Colun, sin lactosa..."></div>
   <div class="ma"><button class="bcn" id="mCnc">Cancelar</button><button class="bdl" id="mDel" style="display:none">Eliminar</button><button class="bsv" id="mSav">Guardar</button></div>
 </div></div>
@@ -339,6 +354,26 @@ input,select{-webkit-appearance:none;appearance:none}
 document.getElementById('helpBtn').addEventListener('click',function(){document.getElementById('helpModal').classList.add('show')});
 document.getElementById('helpClose').addEventListener('click',function(){document.getElementById('helpModal').classList.remove('show')});
 document.getElementById('helpModal').addEventListener('click',function(e){if(e.target===e.currentTarget)e.currentTarget.classList.remove('show')});
+// Sub-tab switching for Pedidos
+var pedTabBtns = document.querySelectorAll('.ped-tab');
+for (var pti=0; pti<pedTabBtns.length; pti++) {
+  (function(btn){ btn.addEventListener('click', function(){
+    for(var k=0;k<pedTabBtns.length;k++) pedTabBtns[k].classList.remove('on');
+    btn.classList.add('on');
+    pedSubTab = btn.getAttribute('data-pt');
+    renderPed();
+  }); })(pedTabBtns[pti]);
+}
+// Search clear button
+document.getElementById('srcClear').addEventListener('click', function(){
+  document.getElementById('srcI').value=''; searchQ='';
+  this.classList.remove('show'); renderDesp();
+});
+document.getElementById('srcI').addEventListener('input', function(){
+  searchQ=this.value;
+  document.getElementById('srcClear').classList.toggle('show', this.value.length>0);
+  renderDesp();
+});
 var phs=['falta pan / hay leche / agregar kefir','se acabo el arroz','falta detergente','hay 3 huevos','Pupe quiere granola','faltan cervezas y helado','Mama necesita shampoo'];
 var phi=0;setInterval(function(){phi=(phi+1)%phs.length;document.getElementById('uInput').placeholder='Ej: '+phs[phi]},4000);
 </script>
