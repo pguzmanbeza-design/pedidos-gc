@@ -3,10 +3,27 @@
 // ==========================================
 
 var CAT_EMOJI = {
-  'Carnes':'\u{1F969}','Lacteos':'\u{1F9C0}','Abarrotes':'\u{1F9FA}','Bebidas':'\u{1F377}',
+  'Carnes':'\u{1F969}','Lacteos':'\u{1F9C0}','Lacteos y huevos':'\u{1F9C0}',
+  'Abarrotes':'\u{1F9FA}','Bebidas':'\u{1F377}',
   'Limpieza':'\u{1F9F9}','Panaderia':'\u{1F35E}','Congelados':'\u2744\uFE0F',
-  'Frutas y Verduras':'\u{1F34E}','Vegano':'\u{1F33F}','Otro':'\u{1F4E6}'
+  'Frutas y Verduras':'\u{1F34E}','Vegano':'\u{1F33F}','Pupe':'\u{1F33F}',
+  'Reposteria':'\u{1F370}','Aperitivo':'\u{1F37F}','Aperitivos':'\u{1F37F}','Botanas':'\u{1F37F}','Snacks':'\u{1F37F}',
+  'Despensa':'\u{1F3E0}','Salsas y ali\u00F1os':'\u{1F336}\uFE0F','Salsas':'\u{1F336}\uFE0F',
+  'Desayuno y dulces':'\u{1F36B}','Desayuno':'\u2615','Dulces':'\u{1F36B}',
+  'Condimentos':'\u{1F9C2}','Especias':'\u{1F9C2}',
+  'Higiene':'\u{1F9FC}','Aseo personal':'\u{1F9FC}','Cuidado personal':'\u{1F9FC}',
+  'Mascotas':'\u{1F43E}','Hogar':'\u{1F3E0}','Oficina':'\u{1F4DD}',
+  'Otro':'\u{1F4E6}'
 };
+// Smart emoji lookup: tries exact match, then partial match
+function catEmoji(name) {
+  if (CAT_EMOJI[name]) return CAT_EMOJI[name];
+  var lower = name.toLowerCase();
+  for (var k in CAT_EMOJI) {
+    if (lower.indexOf(k.toLowerCase()) >= 0 || k.toLowerCase().indexOf(lower) >= 0) return CAT_EMOJI[k];
+  }
+  return '\u{1F4E6}';
+}
 
 var AVATARS = {
   Pablo:'avatar-pablo.png', Pupe:'avatar-pupe.png',
@@ -277,7 +294,7 @@ function renderDesp() {
     var sec = activeSections[si];
     if (!groups[sec] || !groups[sec].length) continue;
     var isFV = sec==='Frutas y Verduras';
-    var emoji = CAT_EMOJI[sec] || '\u{1F4E6}';
+    var emoji = catEmoji(sec);
     h += '<div class="shdr '+(isFV?'sh-fv':'')+'" data-sec="'+sec+'">';
     h += '<span class="sd" style="background:'+(isFV?'var(--fe)':'var(--g3)')+'"></span>';
     h += emoji+' '+sec+'<span class="collapse-arrow">\u25BC</span></div>';
@@ -465,7 +482,7 @@ function renderCatList() {
     var c = cats[i];
     var isDef = DEFAULT_SECTIONS.indexOf(c) !== -1;
     h += '<div class="cat-item' + (isDef ? ' cat-default' : '') + '" data-idx="' + i + '">';
-    var emoji = CAT_EMOJI[c] || '\u{1F4E6}';
+    var emoji = catEmoji(c);
     h += '<button class="cat-up" data-dir="up" data-idx="' + i + '">▲</button>';
     h += '<button class="cat-dn" data-dir="dn" data-idx="' + i + '">▼</button>';
     h += '<span style="font-size:18px">' + emoji + '</span>';
