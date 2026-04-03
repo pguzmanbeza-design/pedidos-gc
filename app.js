@@ -68,10 +68,22 @@ function save() {
   syncToCloud();
 }
 
+var DATA_VERSION = 2; // Increment this when seed data changes significantly
 function load() {
   try {
     var d = localStorage.getItem('df7');
-    if (d) { S = JSON.parse(d); if(!S.pedidos) S.pedidos=[]; return; }
+    if (d) {
+      S = JSON.parse(d);
+      if(!S.pedidos) S.pedidos=[];
+      // Check if data is old seed (version 1 had <=31 products and no custom categories)
+      if (!S._dataVersion && S.productos.length <= 35 && (!S.config.categorias || S.config.categorias.length <= 11)) {
+        console.log('Detected old seed data, upgrading to v'+DATA_VERSION);
+        seed();
+        S._dataVersion = DATA_VERSION;
+        save();
+      }
+      return;
+    }
     // Try to migrate from older versions
     var oldKeys = ['df6','df5','despensa_v3','despensa_familiar_v2','despensa_familiar'];
     for (var k=0; k<oldKeys.length; k++) {
@@ -80,16 +92,22 @@ function load() {
         try {
           S = JSON.parse(old);
           if(!S.pedidos) S.pedidos=[];
+          // Also check if old data is just seed
+          if (S.productos.length <= 35 && (!S.config.categorias || S.config.categorias.length <= 11)) {
+            seed();
+            S._dataVersion = DATA_VERSION;
+          }
           localStorage.setItem('df7', JSON.stringify(S));
           console.log('Migrated data from '+oldKeys[k]);
           return;
         } catch(e2) {}
       }
     }
-    // No local data found - DON'T seed yet, try cloud first
+    // No local data found
     S._needsCloudCheck = true;
     seed();
-  } catch(e) { seed(); }
+    S._dataVersion = DATA_VERSION;
+  } catch(e) { seed(); S._dataVersion = DATA_VERSION; }
 }
 function isRealData() {
   // Returns true if state has real user data (not just seed/demo data)
@@ -213,44 +231,100 @@ function hideToast() { document.getElementById('toast').className='toast'; clear
 // === SEED ===
 function seed() {
   var n=now();
+  var u='uber_eats',f='feria',id=0;
+  function p(nom,cat,uni,qty,canal){id++;return {id:id,nombre:nom,categoria:cat,unidad:uni||'un',cantidadActual:qty||0,canal:canal||u,upd:n,by:'Pablo'};}
+
   S.productos = [
-    {id:1,nombre:'Leche',categoria:'Lacteos',unidad:'lt',cantidadActual:1,stockMinimo:2,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:2,nombre:'Huevos',categoria:'Lacteos',unidad:'un',cantidadActual:0,stockMinimo:12,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:3,nombre:'Mantequilla',categoria:'Lacteos',unidad:'un',cantidadActual:2,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:4,nombre:'Yogur',categoria:'Lacteos',unidad:'un',cantidadActual:3,stockMinimo:2,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:5,nombre:'Queso',categoria:'Lacteos',unidad:'un',cantidadActual:0,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:6,nombre:'Pollo',categoria:'Carnes',unidad:'kg',cantidadActual:1,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:7,nombre:'Carne molida',categoria:'Carnes',unidad:'kg',cantidadActual:0,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:8,nombre:'Cerdo',categoria:'Carnes',unidad:'kg',cantidadActual:2,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:9,nombre:'Tomate',categoria:'Verduras',unidad:'kg',cantidadActual:0,stockMinimo:1,canal:'feria',upd:n,by:'Pablo'},
-    {id:10,nombre:'Lechuga',categoria:'Verduras',unidad:'un',cantidadActual:1,stockMinimo:1,canal:'feria',upd:n,by:'Pablo'},
-    {id:11,nombre:'Zanahoria',categoria:'Verduras',unidad:'kg',cantidadActual:2,stockMinimo:1,canal:'feria',upd:n,by:'Pablo'},
-    {id:12,nombre:'Cebolla',categoria:'Verduras',unidad:'kg',cantidadActual:1,stockMinimo:2,canal:'feria',upd:n,by:'Pablo'},
-    {id:13,nombre:'Palta',categoria:'Frutas',unidad:'un',cantidadActual:0,stockMinimo:3,canal:'feria',upd:n,by:'Pablo'},
-    {id:14,nombre:'Platano',categoria:'Frutas',unidad:'un',cantidadActual:6,stockMinimo:4,canal:'feria',upd:n,by:'Pablo'},
-    {id:15,nombre:'Manzana',categoria:'Frutas',unidad:'un',cantidadActual:3,stockMinimo:3,canal:'feria',upd:n,by:'Pablo'},
-    {id:16,nombre:'Arroz',categoria:'Abarrotes',unidad:'kg',cantidadActual:2,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:17,nombre:'Pasta',categoria:'Abarrotes',unidad:'pack',cantidadActual:1,stockMinimo:2,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:18,nombre:'Aceite',categoria:'Abarrotes',unidad:'lt',cantidadActual:1,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:19,nombre:'Atun',categoria:'Abarrotes',unidad:'un',cantidadActual:0,stockMinimo:3,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:20,nombre:'Lenteja',categoria:'Abarrotes',unidad:'kg',cantidadActual:1,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:21,nombre:'Detergente',categoria:'Limpieza',unidad:'un',cantidadActual:0,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:22,nombre:'Papel hig.',categoria:'Limpieza',unidad:'pack',cantidadActual:1,stockMinimo:2,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:23,nombre:'Jabon liq.',categoria:'Limpieza',unidad:'un',cantidadActual:2,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:24,nombre:'Agua',categoria:'Bebidas',unidad:'lt',cantidadActual:3,stockMinimo:4,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:25,nombre:'Jugo',categoria:'Bebidas',unidad:'lt',cantidadActual:2,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:26,nombre:'Pan molde',categoria:'Panaderia',unidad:'un',cantidadActual:1,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:27,nombre:'Helado',categoria:'Congelados',unidad:'un',cantidadActual:0,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pablo'},
-    {id:28,nombre:'Leche alm.',categoria:'Vegano',unidad:'lt',cantidadActual:1,stockMinimo:2,canal:'uber_eats',upd:n,by:'Pupe'},
-    {id:29,nombre:'Yogur veg.',categoria:'Vegano',unidad:'un',cantidadActual:0,stockMinimo:2,canal:'uber_eats',upd:n,by:'Pupe'},
-    {id:30,nombre:'Granola',categoria:'Vegano',unidad:'un',cantidadActual:1,stockMinimo:1,canal:'uber_eats',upd:n,by:'Pupe'}
+    // Carnes
+    p('Pollo','Carnes','kg',1),p('Carne molida','Carnes','kg',0),p('Cerdo','Carnes','kg',2),
+    p('Chorizo','Carnes','un',0),p('Pescado','Carnes','kg',0),p('Prietas','Carnes','un',0),
+    p('Salmon','Carnes','kg',0),p('Vienesas','Carnes','pack',0),p('Choritos','Carnes','un',0),
+    // Lacteos y huevos
+    p('Leche','Lacteos y huevos','lt',1),p('Huevos','Lacteos y huevos','un',0),
+    p('Mantequilla','Lacteos y huevos','un',2),p('Yogur','Lacteos y huevos','un',3),
+    p('Queso','Lacteos y huevos','un',0),p('Crema','Lacteos y huevos','un',0),
+    p('Yogur griego','Lacteos y huevos','un',0),p('Manjar','Lacteos y huevos','un',1),
+    // Abarrotes
+    p('Arroz','Abarrotes','kg',2),p('Arroz Basmati','Abarrotes','kg',0),
+    p('Pasta','Abarrotes','pack',1),p('Fideos','Abarrotes','pack',1),
+    p('Aceite','Abarrotes','lt',1),p('Aceite oliva','Abarrotes','lt',0),
+    p('Atun','Abarrotes','un',0),p('Lenteja','Abarrotes','kg',1),
+    p('Harina','Abarrotes','kg',0),p('Masa pizza','Abarrotes','un',0),
+    // Condimentos
+    p('Sal','Condimentos','un',1),p('Pimienta','Condimentos','un',1),
+    p('Comino','Condimentos','un',1),p('Oregano','Condimentos','un',1),
+    p('Garam masala','Condimentos','un',0),p('Curry','Condimentos','un',0),
+    p('Aji','Condimentos','un',1),p('Paprika','Condimentos','un',0),
+    // Salsas y aliños
+    p('Ketchup','Salsas y aliños','un',1),p('Mostaza','Salsas y aliños','un',1),
+    p('Mayonesa','Salsas y aliños','un',0),p('Salsa soya','Salsas y aliños','un',1),
+    p('Vinagre','Salsas y aliños','un',1),p('Salsa tomate','Salsas y aliños','un',0),
+    // Bebidas
+    p('Agua','Bebidas','lt',3),p('Jugo','Bebidas','lt',2),
+    p('Cerveza','Bebidas','pack',0),p('Vino','Bebidas','un',0),
+    p('Coca Cola','Bebidas','lt',0),p('Jugo en polvo','Bebidas','un',0),
+    // Desayuno y dulces
+    p('Cereal','Desayuno y dulces','un',1),p('Mermelada','Desayuno y dulces','un',1),
+    p('Miel','Desayuno y dulces','un',0),p('Cafe','Desayuno y dulces','un',1),
+    p('Te','Desayuno y dulces','caja',1),p('Chocolate','Desayuno y dulces','un',0),
+    p('Azucar','Desayuno y dulces','kg',1),p('Galletas dulces','Desayuno y dulces','pack',0),
+    // Panaderia
+    p('Pan molde','Panaderia','un',1),p('Galletas','Panaderia','pack',0),
+    // Reposteria
+    p('Harina repost.','Reposteria','kg',0),p('Polvo hornear','Reposteria','un',1),
+    p('Esencia vainilla','Reposteria','un',0),
+    // Aperitivo
+    p('Papas fritas','Aperitivo','pack',0),p('Nachos','Aperitivo','pack',0),
+    p('Mani','Aperitivo','un',0),
+    // Despensa
+    p('Confort','Despensa','pack',1),p('Servilletas','Despensa','pack',1),
+    p('Bolsas basura','Despensa','pack',1),p('Papel aluminio','Despensa','un',0),
+    p('Film plastico','Despensa','un',0),
+    // Congelados
+    p('Helado','Congelados','un',0),p('Pizza cong.','Congelados','un',0),
+    p('Nuggets','Congelados','pack',0),
+    // Frutas y Verduras
+    p('Tomate','Verduras','kg',0,f),p('Lechuga','Verduras','un',1,f),
+    p('Zanahoria','Verduras','kg',2,f),p('Cebolla','Verduras','kg',1,f),
+    p('Palta','Frutas','un',0,f),p('Platano','Frutas','un',6,f),
+    p('Manzana','Frutas','un',3,f),p('Limon','Frutas','un',0,f),
+    p('Naranja','Frutas','un',0,f),p('Pepino','Verduras','un',0,f),
+    p('Pimenton','Verduras','un',0,f),p('Brocoli','Verduras','un',0,f),
+    p('Espinaca','Verduras','un',0,f),p('Papa','Verduras','kg',2,f),
+    p('Choclo','Verduras','un',0,f),p('Apio','Verduras','un',0,f),
+    p('Frutilla','Frutas','un',0,f),
+    // Limpieza
+    p('Detergente','Limpieza','un',0),p('Papel hig.','Limpieza','pack',1),
+    p('Jabon liq.','Limpieza','un',2),p('Esponja lavap.','Limpieza','un',1),
+    p('Cloro','Limpieza','un',1),p('Lavaloza','Limpieza','un',1),
+    p('Suavizante','Limpieza','un',0),p('Desinfectante','Limpieza','un',0),
+    // Higiene
+    p('Shampoo','Higiene','un',1),p('Pasta dientes','Higiene','un',1),
+    p('Desodorante','Higiene','un',1),p('Jabon barra','Higiene','un',0),
+    // Vegano (Pupe)
+    p('Leche almendra','Vegano','lt',1),p('Yogur vegano','Vegano','un',0),
+    p('Granola','Vegano','un',1),p('Queso vegano','Vegano','un',0),
+    // Mascotas
+    p('Comida Manolo','Mascotas','kg',2),p('Comida Guaipe','Mascotas','kg',1),
+    p('Arena gato','Mascotas','kg',0)
   ];
+  // Fix Pupe products author
+  for(var i=0;i<S.productos.length;i++){if(S.productos[i].categoria==='Vegano')S.productos[i].by='Pupe';}
+
   S.pedidos = [
-    {id:1,texto:'Yogur griego',cantidad:2,por:'Mama',com:'Colun',fecha:n,estado:'pendiente'},
-    {id:2,texto:'Shampoo',cantidad:1,por:'Pablo',com:'anticaspa',fecha:n,estado:'pendiente'},
-    {id:3,texto:'Galletas',cantidad:2,por:'Chichi',com:'chocolate',fecha:n,estado:'pendiente'}
+    {id:1,texto:'Chorizo',cantidad:2,por:'Papa',com:'',fecha:n,estado:'pendiente'},
+    {id:2,texto:'Pescado',cantidad:1,por:'Papa',com:'',fecha:n,estado:'pendiente'},
+    {id:3,texto:'Prietas',cantidad:1,por:'Papa',com:'',fecha:n,estado:'pendiente'},
+    {id:4,texto:'Galletas dulces',cantidad:2,por:'Chichi',com:'chocolate',fecha:n,estado:'pendiente'},
+    {id:5,texto:'Arroz Basmati',cantidad:1,por:'Papa',com:'',fecha:n,estado:'pendiente'},
+    {id:6,texto:'Shampoo',cantidad:1,por:'Pablo',com:'anticaspa',fecha:n,estado:'pendiente'},
+    {id:7,texto:'Yogur griego',cantidad:2,por:'Mama',com:'Colun',fecha:n,estado:'pendiente'}
   ];
-  S.config = {familia:['Papa','Mama','Pablo','Pupe','Chichi','Ester'],proxyUrl:'',activeUser:'Pablo'};
+  S.config = {
+    familia:['Papa','Mama','Pablo','Pupe','Chichi','Ester'],
+    proxyUrl:'',activeUser:'Pablo',
+    categorias:['Carnes','Lacteos y huevos','Abarrotes','Condimentos','Salsas y aliños','Bebidas','Desayuno y dulces','Panaderia','Reposteria','Aperitivo','Despensa','Congelados','Frutas y Verduras','Limpieza','Higiene','Vegano','Mascotas','Otro']
+  };
 }
 
 // === TABS ===
