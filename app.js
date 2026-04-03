@@ -86,8 +86,14 @@ function load() {
         } catch(e2) {}
       }
     }
+    // No local data found - DON'T seed yet, try cloud first
+    S._needsCloudCheck = true;
     seed();
   } catch(e) { seed(); }
+}
+function isRealData() {
+  // Returns true if state has real user data (not just seed/demo data)
+  return S.productos && S.productos.length > 35;
 }
 
 // === CLOUD SYNC ===
@@ -97,13 +103,27 @@ function syncToCloud() {
   clearTimeout(syncTimer);
   syncTimer = setTimeout(function() {
     if (!S.config.proxyUrl) return;
+    // PROTECTION: Don't overwrite cloud with seed/demo data
+    if (S.productos.length <= 35 && S._needsCloudCheck) {
+      console.log('Skipping sync: data looks like seed, checking cloud first');
+      return;
+    }
+    var payload = { productos: S.productos, pedidos: S.pedidos, config: S.config };
     fetch(S.config.proxyUrl.replace(/\/+$/,''), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ _sync: 'save', data: { productos: S.productos, pedidos: S.pedidos, config: S.config } })
+      body: JSON.stringify({ _sync: 'save', data: payload })
     }).then(function(r) { return r.json(); })
     .then(function(d) {
-      if (d.ok) console.log('Synced to cloud:', d.saved);
+      if (d.ok) {
+        console.log('Synced to cloud:', d.saved);
+        // Also save a backup copy (rotates 3 backups in KV)
+        fetch(S.config.proxyUrl.replace(/\/+$/,''), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ _sync: 'backup', data: payload })
+        }).catch(function(){});
+      }
     })
     .catch(function(e) { console.log('Sync error:', e.message); });
   }, 2000);
@@ -115,18 +135,27 @@ function loadFromCloud() {
   .then(function(r) { return r.json(); })
   .then(function(d) {
     if (d && !d.empty && d.productos) {
-      // Merge: cloud data wins if it has more recent changes
-      var cloudTime = d.productos.reduce(function(max, p) { return p.upd > max ? p.upd : max; }, '');
-      var localTime = S.productos.reduce(function(max, p) { return p.upd > max ? p.upd : max; }, '');
-      if (cloudTime >= localTime) {
+      var cloudCount = d.productos.length;
+      var localCount = S.productos.length;
+      // PROTECTION: Always prefer cloud if cloud has more products (real data)
+      // or if local looks like seed data
+      var cloudWins = false;
+      if (S._needsCloudCheck && cloudCount > localCount) {
+        cloudWins = true; // Local is seed, cloud has real data
+      } else {
+        var cloudTime = d.productos.reduce(function(max, p) { return p.upd > max ? p.upd : max; }, '');
+        var localTime = S.productos.reduce(function(max, p) { return p.upd > max ? p.upd : max; }, '');
+        if (cloudTime >= localTime) cloudWins = true;
+      }
+      if (cloudWins) {
         S.productos = d.productos;
         S.pedidos = d.pedidos || S.pedidos;
         if (d.config) {
-          // Restore config from cloud but keep local proxyUrl
           var localProxy = S.config.proxyUrl;
           S.config = d.config;
           if (localProxy) S.config.proxyUrl = localProxy;
         }
+        delete S._needsCloudCheck;
         localStorage.setItem('df7', JSON.stringify(S));
         return true;
       }
@@ -683,14 +712,6 @@ document.getElementById('addCat').addEventListener('click',function(){var inp=do
 document.getElementById('expB').addEventListener('click',function(){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}));a.download='despensa_respaldo.json';a.click();});
 document.getElementById('impB').addEventListener('click',function(){document.getElementById('impF').click();});
 document.getElementById('impF').addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){try{S=JSON.parse(ev.target.result);save();renderAll();updateUserBtn();showToast('Datos importados','ok');}catch(err){showToast('Error al importar','err');}};r.readAsText(f);});
-document.getElementById('rstB').addEventListener('click',function(){
-  if(confirm('ATENCION: Esto eliminara TODOS los productos, pedidos y datos de la familia.\n\nEsta accion NO se puede deshacer.\n\nQuieres continuar?')){
-    if(confirm('SEGUNDA CONFIRMACION: Realmente quieres borrar todo y volver a datos de ejemplo?\n\nSe perdera toda la informacion actual.')){
-      seed();save();renderAll();updateUserBtn();showToast('Datos reseteados a demo','err');
-    }
-  }
-});
-
 // === TEST OPENAI ===
 document.getElementById('testApi').addEventListener('click',function(){
   S.config.proxyUrl=document.getElementById('proxyUrl').value.trim();save();renderConf();
