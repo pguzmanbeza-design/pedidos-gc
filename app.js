@@ -48,7 +48,7 @@ var SECTIONS = DEFAULT_SECTIONS;
 
 var S = {
   productos: [], pedidos: [],
-  config: { familia:['Papa','Mama','Pablo','Pupe','Chichi','Ester'], proxyUrl:'', activeUser:'Pablo', categorias: null }
+  config: { familia:['Papa','Mama','Pablo','Pupe','Chichi','Ester'], proxyUrl:'https://desmensa-proxy.pguzmanbeza.workers.dev', activeUser:'Pablo', categorias: null }
 };
 // categorias: null means use DEFAULT_SECTIONS. When user customizes, it becomes an array.
 
@@ -75,6 +75,8 @@ function load() {
     if (d) {
       S = JSON.parse(d);
       if(!S.pedidos) S.pedidos=[];
+      // Always ensure proxy URL is set
+      if(!S.config.proxyUrl) S.config.proxyUrl = 'https://desmensa-proxy.pguzmanbeza.workers.dev';
       // Check if data is old seed (version 1 had <=31 products and no custom categories)
       if (!S._dataVersion && S.productos.length <= 35 && (!S.config.categorias || S.config.categorias.length <= 11)) {
         console.log('Detected old seed data, upgrading to v'+DATA_VERSION);
@@ -322,7 +324,7 @@ function seed() {
   ];
   S.config = {
     familia:['Papa','Mama','Pablo','Pupe','Chichi','Ester'],
-    proxyUrl:'',activeUser:'Pablo',
+    proxyUrl:'https://desmensa-proxy.pguzmanbeza.workers.dev',activeUser:'Pablo',
     categorias:['Carnes','Lacteos y huevos','Abarrotes','Condimentos','Salsas y aliños','Bebidas','Desayuno y dulces','Panaderia','Reposteria','Aperitivo','Despensa','Congelados','Frutas y Verduras','Limpieza','Higiene','Vegano','Mascotas','Otro']
   };
 }
